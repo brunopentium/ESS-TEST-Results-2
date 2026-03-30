@@ -43,7 +43,7 @@
     }
 
     .app-shell {
-      max-width: 1320px;
+      max-width: 1420px;
       margin: 0 auto;
       display: grid;
       gap: 18px;
@@ -53,7 +53,7 @@
       position: relative;
       overflow: hidden;
       border-radius: 24px;
-      padding: 22px 24px;
+      padding: 24px;
       color: #fff;
       background: linear-gradient(120deg, var(--brand-orange), var(--brand-magenta) 55%, var(--brand-violet));
       box-shadow: var(--shadow-soft);
@@ -75,6 +75,8 @@
       z-index: 1;
       min-height: 110px;
       display: flex;
+      flex-direction: column;
+      gap: 8px;
       align-items: center;
       justify-content: center;
       text-align: center;
@@ -83,7 +85,7 @@
     .hero-title {
       margin: 0;
       color: #ffffff;
-      font-size: clamp(2.1rem, 4vw, 3.3rem);
+      font-size: clamp(2rem, 4vw, 3.1rem);
       font-weight: 800;
       letter-spacing: 0.04em;
       text-transform: uppercase;
@@ -95,8 +97,29 @@
         0 -1px 0 #8d96a8;
     }
 
+    .hero-subtitle {
+      margin: 0;
+      max-width: 680px;
+      opacity: 0.92;
+      font-size: 0.96rem;
+      font-weight: 500;
+    }
+
+    .main-layout {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: minmax(320px, 1.05fr) minmax(520px, 1.45fr);
+      align-items: start;
+    }
+
+    .stack {
+      display: grid;
+      gap: 18px;
+      align-content: start;
+    }
+
     h2 {
-      margin: 0 0 10px;
+      margin: 0;
       font-size: 1.2rem;
     }
 
@@ -109,11 +132,46 @@
       box-shadow: var(--shadow-soft);
     }
 
+    .section-head {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .section-description {
+      margin: 0;
+      color: var(--text-soft);
+      font-size: 0.91rem;
+    }
+
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(12, minmax(0, 1fr));
       gap: 12px;
       margin-top: 10px;
+    }
+
+    .grid > div {
+      grid-column: span 4;
+    }
+
+    .field-span-3 {
+      grid-column: span 3 !important;
+    }
+
+    .field-span-6 {
+      grid-column: span 6 !important;
+    }
+
+    .field-span-8 {
+      grid-column: span 8 !important;
+    }
+
+    .field-span-12 {
+      grid-column: 1 / -1 !important;
     }
 
     label {
@@ -129,12 +187,16 @@
     button {
       width: 100%;
       box-sizing: border-box;
-      padding: 8px;
+      padding: 9px 10px;
       border-radius: var(--radius-md);
       border: 1px solid #d6d8e0;
       font-size: 14px;
       background: #fff;
-      transition: border-color .2s, box-shadow .2s;
+      transition: border-color .2s, box-shadow .2s, transform .2s;
+    }
+
+    select[multiple] {
+      min-height: 132px;
     }
 
     select:focus,
@@ -154,9 +216,23 @@
       box-shadow: 0 10px 18px rgba(129, 36, 126, 0.25);
     }
 
+    .btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.03);
+    }
+
     .btn:disabled {
       opacity: 0.5;
       cursor: not-allowed;
+      transform: none;
+    }
+
+    .toggle-card {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.72);
     }
 
     .compare-grid {
@@ -169,18 +245,23 @@
     .panel {
       border: 1px solid var(--border-soft);
       border-radius: var(--radius-lg);
-      padding: 12px;
+      padding: 14px;
       background: var(--surface-strong);
     }
 
     .panel h3 {
       margin-top: 0;
       margin-bottom: 10px;
+      font-size: 1rem;
     }
 
     .chart-wrap {
-      height: 340px;
+      height: 350px;
       margin-top: 12px;
+      padding: 10px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(180deg, rgba(95, 43, 191, 0.05), rgba(255, 255, 255, 0));
+      border: 1px solid rgba(95, 43, 191, 0.12);
     }
 
     .chart-title-editable {
@@ -220,11 +301,10 @@
       width: auto;
     }
 
-    .limits-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 10px;
-      margin-top: 8px;
+    @media (max-width: 1260px) {
+      .main-layout {
+        grid-template-columns: 1fr;
+      }
     }
 
     @media (max-width: 980px) {
@@ -239,6 +319,23 @@
       .compare-grid {
         grid-template-columns: 1fr;
       }
+
+      .grid > div,
+      .field-span-3,
+      .field-span-6,
+      .field-span-8 {
+        grid-column: span 6 !important;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .grid > div,
+      .field-span-3,
+      .field-span-6,
+      .field-span-8,
+      .field-span-12 {
+        grid-column: 1 / -1 !important;
+      }
     }
   </style>
 </head>
@@ -247,125 +344,135 @@
   <header class="hero">
     <div class="brand" aria-label="ESS Test Bench Results">
       <h1 class="hero-title">ESS Test Bench Results</h1>
+      <p class="hero-subtitle">Layout otimizado para fluxo operacional: conversão e configuração rápida à esquerda, análise comparativa completa à direita.</p>
     </div>
   </header>
 
-  <div class="box">
-    <h2>Automatic TXT → XLSX Converter</h2>
-    <p>Select one or more TXT files (separated by “;”):</p>
+  <div class="main-layout">
+    <div class="stack">
+      <div class="box">
+        <div class="section-head">
+          <h2>Automatic TXT → XLSX Converter</h2>
+        </div>
+        <p class="section-description">Select one or more TXT files (separated by “;”).</p>
 
-    <div class="grid">
-      <div>
-        <input type="file" id="files" accept=".txt" multiple />
-      </div>
-      <div>
-        <button id="btnConv" class="btn">Convert</button>
-      </div>
-    </div>
+        <div class="grid">
+          <div class="field-span-8">
+            <input type="file" id="files" accept=".txt" multiple />
+          </div>
+          <div class="field-span-4">
+            <button id="btnConv" class="btn">Convert</button>
+          </div>
+        </div>
 
-    <div style="margin-top:12px;">
-      <label>
-        <input type="checkbox" id="chkUnificar" style="width:auto; margin-right:6px" />
-        Also generate a single Excel file with all data
-      </label>
-    </div>
-  </div>
-
-  <div class="box">
-    <h2>Offset Configuration (angular reference)</h2>
-    <div class="inline-row">
-      <label for="sensorMode" style="margin:0;">Sensor type:</label>
-      <select id="sensorMode" style="max-width:220px;">
-        <option value="crank">Crank Sensor</option>
-        <option value="cam">Camshaft Sensor</option>
-      </select>
-    </div>
-
-    <div id="crankConfig" class="grid">
-      <div>
-        <label for="crankFirstEdge">1st edge angle (°)</label>
-        <input id="crankFirstEdge" type="number" step="any" value="9" />
-      </div>
-      <div>
-        <label for="crankStep">Increment per edge (°)</label>
-        <input id="crankStep" type="number" step="any" value="6" />
-      </div>
-    </div>
-
-    <div id="crankLimitsConfig" class="grid" style="margin-top:8px;">
-      <div>
-        <label for="crankLimMin_1_58">Minimum limit for edges 1 and 58 (°)</label>
-        <input id="crankLimMin_1_58" type="number" step="any" />
-      </div>
-      <div>
-        <label for="crankLimMax_1_58">Maximum limit for edges 1 and 58 (°)</label>
-        <input id="crankLimMax_1_58" type="number" step="any" />
-      </div>
-      <div>
-        <label for="crankLimMin_2_57">Minimum limit for edges 2 to 57 (°)</label>
-        <input id="crankLimMin_2_57" type="number" step="any" />
-      </div>
-      <div>
-        <label for="crankLimMax_2_57">Maximum limit for edges 2 to 57 (°)</label>
-        <input id="crankLimMax_2_57" type="number" step="any" />
-      </div>
-    </div>
-
-    <div id="camConfig" style="display:none;">
-      <div class="grid">
-        <div>
-          <label for="camEdges">Number of edges per wheel (FE/RE)</label>
-          <input id="camEdges" type="number" min="1" max="12" value="4" />
+        <div class="toggle-card">
+          <label>
+            <input type="checkbox" id="chkUnificar" style="width:auto; margin-right:6px" />
+            Also generate a single Excel file with all data
+          </label>
         </div>
       </div>
-      <div id="camAnglesGrid" class="grid"></div>
-      <div id="camLimitsGrid" class="grid" style="margin-top:8px;"></div>
-    </div>
 
-    <div class="grid" style="margin-top:12px;">
-      <div>
-        <button id="btnExportConfig" class="btn">Export wheel configuration (TXT)</button>
-      </div>
-      <div>
-        <label for="configFileInput">Load wheel configuration (TXT)</label>
-        <input type="file" id="configFileInput" accept=".txt" />
+      <div class="box">
+        <div class="section-head">
+          <h2>Offset Configuration (angular reference)</h2>
+        </div>
+        <div class="inline-row">
+          <label for="sensorMode" style="margin:0;">Sensor type:</label>
+          <select id="sensorMode" style="max-width:220px;">
+            <option value="crank">Crank Sensor</option>
+            <option value="cam">Camshaft Sensor</option>
+          </select>
+        </div>
+
+        <div id="crankConfig" class="grid">
+          <div class="field-span-6">
+            <label for="crankFirstEdge">1st edge angle (°)</label>
+            <input id="crankFirstEdge" type="number" step="any" value="9" />
+          </div>
+          <div class="field-span-6">
+            <label for="crankStep">Increment per edge (°)</label>
+            <input id="crankStep" type="number" step="any" value="6" />
+          </div>
+        </div>
+
+        <div id="crankLimitsConfig" class="grid" style="margin-top:8px;">
+          <div class="field-span-6">
+            <label for="crankLimMin_1_58">Minimum limit for edges 1 and 58 (°)</label>
+            <input id="crankLimMin_1_58" type="number" step="any" />
+          </div>
+          <div class="field-span-6">
+            <label for="crankLimMax_1_58">Maximum limit for edges 1 and 58 (°)</label>
+            <input id="crankLimMax_1_58" type="number" step="any" />
+          </div>
+          <div class="field-span-6">
+            <label for="crankLimMin_2_57">Minimum limit for edges 2 to 57 (°)</label>
+            <input id="crankLimMin_2_57" type="number" step="any" />
+          </div>
+          <div class="field-span-6">
+            <label for="crankLimMax_2_57">Maximum limit for edges 2 to 57 (°)</label>
+            <input id="crankLimMax_2_57" type="number" step="any" />
+          </div>
+        </div>
+
+        <div id="camConfig" style="display:none;">
+          <div class="grid">
+            <div class="field-span-6">
+              <label for="camEdges">Number of edges per wheel (FE/RE)</label>
+              <input id="camEdges" type="number" min="1" max="12" value="4" />
+            </div>
+          </div>
+          <div id="camAnglesGrid" class="grid"></div>
+          <div id="camLimitsGrid" class="grid" style="margin-top:8px;"></div>
+        </div>
+
+        <div class="grid" style="margin-top:12px;">
+          <div class="field-span-6">
+            <button id="btnExportConfig" class="btn">Export wheel configuration (TXT)</button>
+          </div>
+          <div class="field-span-6">
+            <label for="configFileInput">Load wheel configuration (TXT)</label>
+            <input type="file" id="configFileInput" accept=".txt" />
+          </div>
+        </div>
       </div>
     </div>
-  </div>
 
   <div class="box">
-    <h2>Scenario Comparator from Excel</h2>
-    <p>Load an Excel file (e.g., <strong>merged_result.xlsx</strong>) and compare two scenarios side by side.</p>
+    <div class="section-head">
+      <h2>Scenario Comparator from Excel</h2>
+    </div>
+    <p class="section-description">Load an Excel file (e.g., <strong>merged_result.xlsx</strong>) and compare two scenarios side by side.</p>
 
     <div class="grid">
-      <div>
+      <div class="field-span-6">
         <label for="excelFile">Excel file</label>
         <input type="file" id="excelFile" accept=".xlsx,.xls" />
       </div>
-      <div>
+      <div class="field-span-3">
         <label for="sheetSelect">Chart sheet</label>
         <select id="sheetSelect" disabled></select>
       </div>
-      <div>
+      <div class="field-span-3">
         <label>&nbsp;</label>
         <button id="btnAtualizar" class="btn" disabled>Update charts</button>
       </div>
     </div>
 
     <div class="grid" style="margin-top:12px;">
-      <div>
+      <div class="field-span-4">
         <label>
           <input type="checkbox" id="chkAutoScale" checked style="width:auto; margin-right:6px" />
           Auto scale (each chart adjusts its own scale)
         </label>
       </div>
-      <div>
+      <div class="field-span-4">
         <label>
           <input type="checkbox" id="chkIgnorarPerdaPulsos" style="width:auto; margin-right:6px" />
           Ignore pulse loss
         </label>
       </div>
-      <div class="muted">When enabled, each chart uses auto scale including data and configured limits.</div>
+      <div class="muted field-span-4">When enabled, each chart uses auto scale including data and configured limits.</div>
     </div>
 
     <div class="compare-grid" style="margin-top:10px;">
@@ -397,10 +504,10 @@
       </div>
     </div>
     <div class="grid" style="margin-top:10px;">
-      <div>
+      <div class="field-span-6">
         <button id="btnExportGraficoConfig" class="btn">Export chart configuration (TXT)</button>
       </div>
-      <div>
+      <div class="field-span-6">
         <label for="graficoConfigFileInput">Load chart configuration (TXT)</label>
         <input type="file" id="graficoConfigFileInput" accept=".txt" />
       </div>
@@ -457,35 +564,35 @@
       <div class="panel">
         <h3>Scenario A</h3>
         <div class="grid">
-          <div>
+          <div class="field-span-3">
             <label for="aSerie">X-axis series</label>
             <select id="aSerie"></select>
           </div>
-          <div>
+          <div class="field-span-9">
             <label for="aSensors">Edges to plot (Ctrl/Cmd + click)</label>
             <select id="aSensors" multiple size="6"></select>
           </div>
-          <div>
+          <div class="field-span-6">
             <label for="aFiltroArquivo">Files</label>
             <select id="aFiltroArquivo" multiple size="6"></select>
           </div>
-          <div>
+          <div class="field-span-6">
             <label for="aFiltroAcqui">Acquisitions</label>
             <select id="aFiltroAcqui" multiple size="6"></select>
           </div>
-          <div>
+          <div class="field-span-6">
             <label for="aFiltroRev">Revolutions</label>
             <select id="aFiltroRev" multiple size="6"></select>
           </div>
-          <div>
+          <div class="field-span-6">
             <label for="aFiltroAirGap">Air Gap</label>
             <select id="aFiltroAirGap" multiple size="6"></select>
           </div>
-          <div>
+          <div class="field-span-6">
             <label for="aFiltroPosY">Y Position</label>
             <select id="aFiltroPosY" multiple size="6"></select>
           </div>
-          <div>
+          <div class="field-span-6">
             <label for="aFiltroRPM">RPM</label>
             <select id="aFiltroRPM" multiple size="6"></select>
           </div>
@@ -499,35 +606,35 @@
       <div class="panel">
         <h3>Scenario B</h3>
         <div class="grid">
-          <div>
+          <div class="field-span-3">
             <label for="bSerie">X-axis series</label>
             <select id="bSerie"></select>
           </div>
-          <div>
+          <div class="field-span-9">
             <label for="bSensors">Edges to plot (Ctrl/Cmd + click)</label>
             <select id="bSensors" multiple size="6"></select>
           </div>
-          <div>
+          <div class="field-span-6">
             <label for="bFiltroArquivo">Files</label>
             <select id="bFiltroArquivo" multiple size="6"></select>
           </div>
-          <div>
+          <div class="field-span-6">
             <label for="bFiltroAcqui">Acquisitions</label>
             <select id="bFiltroAcqui" multiple size="6"></select>
           </div>
-          <div>
+          <div class="field-span-6">
             <label for="bFiltroRev">Revolutions</label>
             <select id="bFiltroRev" multiple size="6"></select>
           </div>
-          <div>
+          <div class="field-span-6">
             <label for="bFiltroAirGap">Air Gap</label>
             <select id="bFiltroAirGap" multiple size="6"></select>
           </div>
-          <div>
+          <div class="field-span-6">
             <label for="bFiltroPosY">Y Position</label>
             <select id="bFiltroPosY" multiple size="6"></select>
           </div>
-          <div>
+          <div class="field-span-6">
             <label for="bFiltroRPM">RPM</label>
             <select id="bFiltroRPM" multiple size="6"></select>
           </div>
@@ -539,8 +646,10 @@
       </div>
     </div>
 
-    <div style="margin-top:14px;">
-      <button id="btnExportComparador" class="btn" disabled>Export worksheet with stratification + charts</button>
+    <div class="grid" style="margin-top:14px;">
+      <div class="field-span-6">
+        <button id="btnExportComparador" class="btn" disabled>Export worksheet with stratification + charts</button>
+      </div>
     </div>
   </div>
   </div>
