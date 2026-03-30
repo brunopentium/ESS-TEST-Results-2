@@ -264,9 +264,14 @@
       });
 
       const maxOutputCols = Math.max(...transposedRows.map(r => r.length));
+      const primeiraLinhaDados = transposedRows[3] || [];
+      const titulosAmostras = primeiraLinhaDados.slice(2).map(v => String(v ?? '').trim());
+      const possuiTitulosCustomizados = titulosAmostras.some(Boolean);
+
       transposedRows[2] = Array.from({ length: maxOutputCols }, (_, idx) => {
         if (idx === 0) return 'Source File';
         if (idx === 1) return 'Field';
+        if (possuiTitulosCustomizados) return titulosAmostras[idx - 2] || '';
         return `Sample ${idx - 1}`;
       });
 
