@@ -231,6 +231,10 @@
       return lines.map(line => parseCsvLine(line).map(normalizeCell));
     }
 
+    function isExportInfoRow(row) {
+      return row.some((cell) => /hallscope export data/i.test(String(cell ?? '')));
+    }
+
     function buildTransposedUnifiedRows(unifiedRows) {
       const header = unifiedRows[0] || [];
       const dataRows = unifiedRows.slice(1);
@@ -246,20 +250,18 @@
 
       const transposedRows = [['Limite Máximo', '', ''], ['Limite Mínimo', '', ''], ['Source File', 'Field', 'Sample 1']];
 
-      let identificadorColunaJaAdicionado = false;
       groupedBySource.forEach((rows, sourceName) => {
         const sampleCount = rows.length;
         const maxCols = Math.max(...rows.map(r => r.length));
 
         for (let col = 1; col < maxCols; col += 1) {
-          if (col === 1 && identificadorColunaJaAdicionado) continue;
+          if (col === 1) continue;
           const fieldName = header[col] || `Column ${col}`;
           const outRow = [sourceName, fieldName];
           for (let sampleIdx = 0; sampleIdx < sampleCount; sampleIdx += 1) {
             outRow.push(rows[sampleIdx][col] ?? '');
           }
           transposedRows.push(outRow);
-          if (col === 1) identificadorColunaJaAdicionado = true;
         }
       });
 
@@ -362,6 +364,7 @@
           XLSX.utils.book_append_sheet(wb, sheet, sheetName);
 
           rows.forEach((row) => {
+            if (isExportInfoRow(row)) return;
             unifiedRows.push([replaceBrand(file.name), ...row]);
           });
         }
