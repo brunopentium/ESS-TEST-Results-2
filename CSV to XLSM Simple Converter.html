@@ -246,17 +246,20 @@
 
       const transposedRows = [['Limite Máximo', '', ''], ['Limite Mínimo', '', ''], ['Source File', 'Field', 'Sample 1']];
 
+      let identificadorColunaJaAdicionado = false;
       groupedBySource.forEach((rows, sourceName) => {
         const sampleCount = rows.length;
         const maxCols = Math.max(...rows.map(r => r.length));
 
         for (let col = 1; col < maxCols; col += 1) {
+          if (col === 1 && identificadorColunaJaAdicionado) continue;
           const fieldName = header[col] || `Column ${col}`;
           const outRow = [sourceName, fieldName];
           for (let sampleIdx = 0; sampleIdx < sampleCount; sampleIdx += 1) {
             outRow.push(rows[sampleIdx][col] ?? '');
           }
           transposedRows.push(outRow);
+          if (col === 1) identificadorColunaJaAdicionado = true;
         }
       });
 
@@ -280,7 +283,11 @@
         for (let r = 0; r <= 1; r += 1) {
           const addr = XLSX.utils.encode_cell({ r, c });
           const cell = ws[addr] || (ws[addr] = { t: 's', v: '' });
-          cell.s = { ...(cell.s || {}), fill: yellowFill };
+          cell.s = {
+            ...(cell.s || {}),
+            fill: yellowFill,
+            font: { ...(cell.s?.font || {}), bold: true }
+          };
         }
       }
     }
