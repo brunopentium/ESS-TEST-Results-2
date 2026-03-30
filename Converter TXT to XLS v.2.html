@@ -1,0 +1,2145 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="UTF-8" />
+  <title>TXT → XLSX Converter + Scenario Comparator</title>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --brand-orange: #ff4c0a;
+      --brand-magenta: #c62d81;
+      --brand-violet: #5f2bbf;
+      --brand-bg: #0f1320;
+      --surface: rgba(255, 255, 255, 0.92);
+      --surface-strong: #ffffff;
+      --text-main: #1a2030;
+      --text-soft: #5d667a;
+      --border-soft: rgba(95, 43, 191, 0.16);
+      --shadow-soft: 0 18px 40px rgba(17, 18, 33, 0.12);
+      --radius-lg: 18px;
+      --radius-md: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Segoe UI", "Inter", Arial, sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      line-height: 1.45;
+      color: var(--text-main);
+      background:
+        radial-gradient(1200px 500px at -10% -10%, rgba(255, 76, 10, 0.24), transparent 60%),
+        radial-gradient(900px 400px at 100% 0%, rgba(198, 45, 129, 0.22), transparent 55%),
+        linear-gradient(130deg, #f6f8ff, #f4f2ff 52%, #fdeeee);
+      padding: 18px;
+    }
+
+    .app-shell {
+      max-width: 1320px;
+      margin: 0 auto;
+      display: grid;
+      gap: 18px;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      border-radius: 24px;
+      padding: 22px 24px;
+      color: #fff;
+      background: linear-gradient(120deg, var(--brand-orange), var(--brand-magenta) 55%, var(--brand-violet));
+      box-shadow: var(--shadow-soft);
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: -120px;
+      top: -120px;
+      width: 320px;
+      height: 320px;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.24), transparent 62%);
+    }
+
+    .brand {
+      margin: 0;
+      position: relative;
+      z-index: 1;
+      min-height: 110px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .hero-title {
+      margin: 0;
+      color: #ffffff;
+      font-size: clamp(2.1rem, 4vw, 3.3rem);
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      -webkit-text-stroke: 1.5px #8d96a8;
+      text-shadow:
+        1px 0 0 #8d96a8,
+        -1px 0 0 #8d96a8,
+        0 1px 0 #8d96a8,
+        0 -1px 0 #8d96a8;
+    }
+
+    h2 {
+      margin: 0 0 10px;
+      font-size: 1.2rem;
+    }
+
+    .box {
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      background: var(--surface);
+      backdrop-filter: blur(4px);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 4px;
+      color: var(--text-soft);
+      font-weight: 600;
+    }
+
+    select,
+    input,
+    button {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px;
+      border-radius: var(--radius-md);
+      border: 1px solid #d6d8e0;
+      font-size: 14px;
+      background: #fff;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    select:focus,
+    input:focus {
+      outline: none;
+      border-color: var(--brand-magenta);
+      box-shadow: 0 0 0 4px rgba(198, 45, 129, 0.16);
+    }
+
+    .btn {
+      cursor: pointer;
+      background: linear-gradient(125deg, var(--brand-orange), var(--brand-magenta) 55%, var(--brand-violet));
+      color: #fff;
+      border: none;
+      font-weight: 600;
+      letter-spacing: .01em;
+      box-shadow: 0 10px 18px rgba(129, 36, 126, 0.25);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .compare-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 12px;
+    }
+
+    .panel {
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-lg);
+      padding: 12px;
+      background: var(--surface-strong);
+    }
+
+    .panel h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+    }
+
+    .chart-wrap {
+      height: 340px;
+      margin-top: 12px;
+    }
+
+    .chart-title-editable {
+      margin: 10px 0 4px;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-main);
+      text-align: center;
+      border: 1px dashed transparent;
+      border-radius: 8px;
+      padding: 6px 8px;
+      transition: border-color .2s, background-color .2s;
+      cursor: text;
+    }
+
+    .chart-title-editable:hover,
+    .chart-title-editable:focus {
+      border-color: rgba(95, 43, 191, 0.35);
+      background-color: rgba(95, 43, 191, 0.06);
+      outline: none;
+    }
+
+    .muted {
+      font-size: 12px;
+      color: var(--text-soft);
+      margin-top: 8px;
+    }
+
+    .inline-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .inline-row > * {
+      width: auto;
+    }
+
+    .limits-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    @media (max-width: 980px) {
+      body {
+        padding: 12px;
+      }
+
+      .hero {
+        padding: 18px;
+      }
+
+      .compare-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+  <header class="hero">
+    <div class="brand" aria-label="ESS Test Bench Results">
+      <h1 class="hero-title">ESS Test Bench Results</h1>
+    </div>
+  </header>
+
+  <div class="box">
+    <h2>Automatic TXT → XLSX Converter</h2>
+    <p>Select one or more TXT files (separated by “;”):</p>
+
+    <div class="grid">
+      <div>
+        <input type="file" id="files" accept=".txt" multiple />
+      </div>
+      <div>
+        <button id="btnConv" class="btn">Convert</button>
+      </div>
+    </div>
+
+    <div style="margin-top:12px;">
+      <label>
+        <input type="checkbox" id="chkUnificar" style="width:auto; margin-right:6px" />
+        Also generate a single Excel file with all data
+      </label>
+    </div>
+  </div>
+
+  <div class="box">
+    <h2>Offset Configuration (angular reference)</h2>
+    <div class="inline-row">
+      <label for="sensorMode" style="margin:0;">Sensor type:</label>
+      <select id="sensorMode" style="max-width:220px;">
+        <option value="crank">Crank Sensor</option>
+        <option value="cam">Camshaft Sensor</option>
+      </select>
+    </div>
+
+    <div id="crankConfig" class="grid">
+      <div>
+        <label for="crankFirstEdge">1st edge angle (°)</label>
+        <input id="crankFirstEdge" type="number" step="any" value="9" />
+      </div>
+      <div>
+        <label for="crankStep">Increment per edge (°)</label>
+        <input id="crankStep" type="number" step="any" value="6" />
+      </div>
+    </div>
+
+    <div id="crankLimitsConfig" class="grid" style="margin-top:8px;">
+      <div>
+        <label for="crankLimMin_1_58">Minimum limit for edges 1 and 58 (°)</label>
+        <input id="crankLimMin_1_58" type="number" step="any" />
+      </div>
+      <div>
+        <label for="crankLimMax_1_58">Maximum limit for edges 1 and 58 (°)</label>
+        <input id="crankLimMax_1_58" type="number" step="any" />
+      </div>
+      <div>
+        <label for="crankLimMin_2_57">Minimum limit for edges 2 to 57 (°)</label>
+        <input id="crankLimMin_2_57" type="number" step="any" />
+      </div>
+      <div>
+        <label for="crankLimMax_2_57">Maximum limit for edges 2 to 57 (°)</label>
+        <input id="crankLimMax_2_57" type="number" step="any" />
+      </div>
+    </div>
+
+    <div id="camConfig" style="display:none;">
+      <div class="grid">
+        <div>
+          <label for="camEdges">Number of edges per wheel (FE/RE)</label>
+          <input id="camEdges" type="number" min="1" max="12" value="4" />
+        </div>
+      </div>
+      <div id="camAnglesGrid" class="grid"></div>
+      <div id="camLimitsGrid" class="grid" style="margin-top:8px;"></div>
+    </div>
+
+    <div class="grid" style="margin-top:12px;">
+      <div>
+        <button id="btnExportConfig" class="btn">Export wheel configuration (TXT)</button>
+      </div>
+      <div>
+        <label for="configFileInput">Load wheel configuration (TXT)</label>
+        <input type="file" id="configFileInput" accept=".txt" />
+      </div>
+    </div>
+  </div>
+
+  <div class="box">
+    <h2>Scenario Comparator from Excel</h2>
+    <p>Load an Excel file (e.g., <strong>merged_result.xlsx</strong>) and compare two scenarios side by side.</p>
+
+    <div class="grid">
+      <div>
+        <label for="excelFile">Excel file</label>
+        <input type="file" id="excelFile" accept=".xlsx,.xls" />
+      </div>
+      <div>
+        <label for="sheetSelect">Chart sheet</label>
+        <select id="sheetSelect" disabled></select>
+      </div>
+      <div>
+        <label>&nbsp;</label>
+        <button id="btnAtualizar" class="btn" disabled>Update charts</button>
+      </div>
+    </div>
+
+    <div class="grid" style="margin-top:12px;">
+      <div>
+        <label>
+          <input type="checkbox" id="chkAutoScale" checked style="width:auto; margin-right:6px" />
+          Auto scale (each chart adjusts its own scale)
+        </label>
+      </div>
+      <div>
+        <label>
+          <input type="checkbox" id="chkIgnorarPerdaPulsos" style="width:auto; margin-right:6px" />
+          Ignore pulse loss
+        </label>
+      </div>
+      <div class="muted">When enabled, each chart uses auto scale including data and configured limits.</div>
+    </div>
+
+    <div class="compare-grid" style="margin-top:10px;">
+      <div class="panel">
+        <h3>Chart limits - Scenario A</h3>
+        <div class="grid">
+          <div>
+            <label for="limiteMinGraficoA">Minimum limit (black line)</label>
+            <input id="limiteMinGraficoA" type="number" step="any" placeholder="Optional" />
+          </div>
+          <div>
+            <label for="limiteMaxGraficoA">Maximum limit (black line)</label>
+            <input id="limiteMaxGraficoA" type="number" step="any" placeholder="Optional" />
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Chart limits - Scenario B</h3>
+        <div class="grid">
+          <div>
+            <label for="limiteMinGraficoB">Minimum limit (black line)</label>
+            <input id="limiteMinGraficoB" type="number" step="any" placeholder="Optional" />
+          </div>
+          <div>
+            <label for="limiteMaxGraficoB">Maximum limit (black line)</label>
+            <input id="limiteMaxGraficoB" type="number" step="any" placeholder="Optional" />
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="grid" style="margin-top:10px;">
+      <div>
+        <button id="btnExportGraficoConfig" class="btn">Export chart configuration (TXT)</button>
+      </div>
+      <div>
+        <label for="graficoConfigFileInput">Load chart configuration (TXT)</label>
+        <input type="file" id="graficoConfigFileInput" accept=".txt" />
+      </div>
+    </div>
+
+    <div id="manualScaleBox" style="display:none; margin-top:8px;">
+      <div class="compare-grid">
+        <div class="panel">
+          <h3>Manual scale - Scenario A</h3>
+          <div class="grid">
+            <div>
+              <label for="aXMin">Min X (optional)</label>
+              <input id="aXMin" type="number" step="any" />
+            </div>
+            <div>
+              <label for="aXMax">Max X (optional)</label>
+              <input id="aXMax" type="number" step="any" />
+            </div>
+            <div>
+              <label for="aYMin">Min Y (optional)</label>
+              <input id="aYMin" type="number" step="any" />
+            </div>
+            <div>
+              <label for="aYMax">Max Y (optional)</label>
+              <input id="aYMax" type="number" step="any" />
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Manual scale - Scenario B</h3>
+          <div class="grid">
+            <div>
+              <label for="bXMin">Min X (optional)</label>
+              <input id="bXMin" type="number" step="any" />
+            </div>
+            <div>
+              <label for="bXMax">Max X (optional)</label>
+              <input id="bXMax" type="number" step="any" />
+            </div>
+            <div>
+              <label for="bYMin">Min Y (optional)</label>
+              <input id="bYMin" type="number" step="any" />
+            </div>
+            <div>
+              <label for="bYMax">Max Y (optional)</label>
+              <input id="bYMax" type="number" step="any" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="compare-grid">
+      <div class="panel">
+        <h3>Scenario A</h3>
+        <div class="grid">
+          <div>
+            <label for="aSerie">X-axis series</label>
+            <select id="aSerie"></select>
+          </div>
+          <div>
+            <label for="aSensors">Edges to plot (Ctrl/Cmd + click)</label>
+            <select id="aSensors" multiple size="6"></select>
+          </div>
+          <div>
+            <label for="aFiltroArquivo">Files</label>
+            <select id="aFiltroArquivo" multiple size="6"></select>
+          </div>
+          <div>
+            <label for="aFiltroAcqui">Acquisitions</label>
+            <select id="aFiltroAcqui" multiple size="6"></select>
+          </div>
+          <div>
+            <label for="aFiltroRev">Revolutions</label>
+            <select id="aFiltroRev" multiple size="6"></select>
+          </div>
+          <div>
+            <label for="aFiltroAirGap">Air Gap</label>
+            <select id="aFiltroAirGap" multiple size="6"></select>
+          </div>
+          <div>
+            <label for="aFiltroPosY">Y Position</label>
+            <select id="aFiltroPosY" multiple size="6"></select>
+          </div>
+          <div>
+            <label for="aFiltroRPM">RPM</label>
+            <select id="aFiltroRPM" multiple size="6"></select>
+          </div>
+        </div>
+        <div id="chartTitleA" class="chart-title-editable" contenteditable="true" spellcheck="false">Scenario A</div>
+        <div class="chart-wrap">
+          <canvas id="chartA"></canvas>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Scenario B</h3>
+        <div class="grid">
+          <div>
+            <label for="bSerie">X-axis series</label>
+            <select id="bSerie"></select>
+          </div>
+          <div>
+            <label for="bSensors">Edges to plot (Ctrl/Cmd + click)</label>
+            <select id="bSensors" multiple size="6"></select>
+          </div>
+          <div>
+            <label for="bFiltroArquivo">Files</label>
+            <select id="bFiltroArquivo" multiple size="6"></select>
+          </div>
+          <div>
+            <label for="bFiltroAcqui">Acquisitions</label>
+            <select id="bFiltroAcqui" multiple size="6"></select>
+          </div>
+          <div>
+            <label for="bFiltroRev">Revolutions</label>
+            <select id="bFiltroRev" multiple size="6"></select>
+          </div>
+          <div>
+            <label for="bFiltroAirGap">Air Gap</label>
+            <select id="bFiltroAirGap" multiple size="6"></select>
+          </div>
+          <div>
+            <label for="bFiltroPosY">Y Position</label>
+            <select id="bFiltroPosY" multiple size="6"></select>
+          </div>
+          <div>
+            <label for="bFiltroRPM">RPM</label>
+            <select id="bFiltroRPM" multiple size="6"></select>
+          </div>
+        </div>
+        <div id="chartTitleB" class="chart-title-editable" contenteditable="true" spellcheck="false">Scenario B</div>
+        <div class="chart-wrap">
+          <canvas id="chartB"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:14px;">
+      <button id="btnExportComparador" class="btn" disabled>Export worksheet with stratification + charts</button>
+    </div>
+  </div>
+  </div>
+
+  <script>
+    document.getElementById("btnConv").addEventListener("click", processar);
+
+    const estadoComparador = {
+      headers: [],
+      rows: [],
+      chartA: null,
+      chartB: null,
+      workbook: null,
+      seriesCols: {
+        FE: [],
+        RE: []
+      },
+      referencias: {},
+      titulosCustomizados: {
+        A: { texto: "Scenario A", manual: false },
+        B: { texto: "Scenario B", manual: false }
+      },
+      filtroCols: {
+        arquivo: "",
+        acqui: "",
+        rev: "",
+        airGap: "",
+        posY: "",
+        rpm: ""
+      }
+    };
+
+    document.getElementById("excelFile").addEventListener("change", carregarExcelComparador);
+    document.getElementById("sheetSelect").addEventListener("change", carregarAbaComparadorSelecionada);
+    document.getElementById("btnAtualizar").addEventListener("click", atualizarGraficos);
+    document.getElementById("btnExportComparador").addEventListener("click", exportarComparadorComGraficos);
+    document.getElementById("chkAutoScale").addEventListener("change", () => {
+      document.getElementById("manualScaleBox").style.display = document.getElementById("chkAutoScale").checked ? "none" : "grid";
+      if (estadoComparador.rows.length) atualizarGraficos();
+    });
+    document.getElementById("chkIgnorarPerdaPulsos").addEventListener("change", () => {
+      if (estadoComparador.rows.length) atualizarGraficos();
+    });
+
+    ["aXMin", "aXMax", "aYMin", "aYMax", "bXMin", "bXMax", "bYMin", "bYMax", "limiteMinGraficoA", "limiteMaxGraficoA", "limiteMinGraficoB", "limiteMaxGraficoB"].forEach(id => {
+      document.getElementById(id).addEventListener("input", () => {
+        if (estadoComparador.rows.length) atualizarGraficos();
+      });
+    });
+
+    ["aSerie", "aSensors", "aFiltroArquivo", "aFiltroAcqui", "aFiltroRev", "aFiltroAirGap", "aFiltroPosY", "aFiltroRPM", "bSerie", "bSensors", "bFiltroArquivo", "bFiltroAcqui", "bFiltroRev", "bFiltroAirGap", "bFiltroPosY", "bFiltroRPM"].forEach(id => {
+      document.getElementById(id).addEventListener("change", () => {
+        if (id.endsWith("Serie")) {
+          const sufixo = id.startsWith("a") ? "A" : "B";
+          preencherSensoresSerie(sufixo);
+        }
+        if (estadoComparador.rows.length) atualizarGraficos();
+      });
+    });
+
+    document.getElementById("sensorMode").addEventListener("change", atualizarCamposSensor);
+    document.getElementById("camEdges").addEventListener("input", renderCamposCamshaft);
+    document.getElementById("btnExportConfig").addEventListener("click", exportarConfigDefasagemTxt);
+    document.getElementById("configFileInput").addEventListener("change", carregarConfigDefasagemTxt);
+    document.getElementById("btnExportGraficoConfig").addEventListener("click", exportarConfigGraficosTxt);
+    document.getElementById("graficoConfigFileInput").addEventListener("change", carregarConfigGraficosTxt);
+    ["A", "B"].forEach(sufixo => {
+      const elTitulo = document.getElementById(`chartTitle${sufixo}`);
+      elTitulo.addEventListener("input", () => {
+        const texto = String(elTitulo.textContent ?? "").trim();
+        estadoComparador.titulosCustomizados[sufixo] = {
+          texto: texto || `Scenario ${sufixo}`,
+          manual: true
+        };
+        if (estadoComparador.rows.length) atualizarGraficos();
+      });
+    });
+    atualizarCamposSensor();
+    renderCamposCamshaft();
+
+    async function processar() {
+      const input = document.getElementById("files");
+      const unificar = document.getElementById("chkUnificar").checked;
+
+      if (!input.files.length) {
+        alert("Select files first!");
+        return;
+      }
+
+      const configDefasagem = capturarConfigDefasagem();
+      const erroConfig = validarConfigDefasagem(configDefasagem);
+      if (erroConfig) {
+        alert(erroConfig);
+        return;
+      }
+
+      const arquivos = [...input.files];
+      const dadosUnificados = [];
+      let cabecalhoUnificado = null;
+
+      for (let i = 0; i < arquivos.length; i++) {
+        const file = arquivos[i];
+        const texto = await lerArquivo(file);
+        const linhas = texto.split(/\r?\n/).filter(l => l.trim() !== "");
+        let dados = linhas.map(l => l.split(";"));
+        dados = dados.map(linha => linha.map(campo => normalizarNumero(campo)));
+
+        const nomeArquivo = file.name;
+        const idxCabecalho = encontrarLinhaCabecalho(dados);
+        const cabecalhoAtual = idxCabecalho >= 0 ? dados[idxCabecalho] : (dados[0] || []);
+        const metadadosArquivo = extrairMetadadosTexto(linhas, nomeArquivo);
+        const dadosComMetadados = aplicarMetadadosNoArquivo(dados, idxCabecalho, cabecalhoAtual, metadadosArquivo);
+
+        const ws = XLSX.utils.aoa_to_sheet(dadosComMetadados);
+        tiparNumericos(ws);
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Dados");
+
+        const wsDefasagemIndividual = criarSheetDefasagem(dadosComMetadados, "Dados", configDefasagem);
+        if (wsDefasagemIndividual) {
+          XLSX.utils.book_append_sheet(wb, wsDefasagemIndividual, "DEFASAGEM");
+        }
+
+        XLSX.writeFile(wb, file.name.replace(/\.txt$/i, ".xlsx"));
+
+        if (unificar && dadosComMetadados.length > 0) {
+          const cabecalhoComMeta = idxCabecalho >= 0 ? dadosComMetadados[idxCabecalho] : (dadosComMetadados[0] || []);
+
+          if (!cabecalhoUnificado) {
+            cabecalhoUnificado = ["Arquivo", ...cabecalhoComMeta];
+            dadosUnificados.push(cabecalhoUnificado);
+          }
+
+          const inicioDados = idxCabecalho >= 0 ? idxCabecalho + 1 : 1;
+          const linhasDados = dadosComMetadados.slice(inicioDados);
+
+          linhasDados.forEach(linha => {
+            if (linhasSaoIguais(linha, cabecalhoComMeta)) return;
+            dadosUnificados.push([nomeArquivo, ...linha]);
+          });
+        }
+      }
+
+      if (unificar) {
+        if (dadosUnificados.length > 0) {
+          const [cabecalho, ...linhasDados] = dadosUnificados;
+          linhasDados.sort((a, b) => {
+            const nomeA = String(a?.[0] ?? "").trim();
+            const nomeB = String(b?.[0] ?? "").trim();
+            return nomeA.localeCompare(nomeB, "pt-BR", { sensitivity: "base", numeric: true });
+          });
+
+          dadosUnificados.length = 0;
+          dadosUnificados.push(cabecalho, ...linhasDados);
+
+          const wsUnificado = XLSX.utils.aoa_to_sheet(dadosUnificados);
+          tiparNumericos(wsUnificado);
+
+          const wbUnificado = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wbUnificado, wsUnificado, "MERGED");
+
+          const wsDefasagemUnificado = criarSheetDefasagem(dadosUnificados, "MERGED", configDefasagem);
+          if (wsDefasagemUnificado) {
+            XLSX.utils.book_append_sheet(wbUnificado, wsDefasagemUnificado, "OFFSET");
+          }
+
+          XLSX.writeFile(wbUnificado, "merged_result.xlsx");
+          estadoComparador.workbook = wbUnificado;
+          popularSelectAbas(wbUnificado);
+          carregarAbaComparadorSelecionada();
+
+          alert("Conversion completed! Individual and merged files generated.");
+        } else {
+          alert("Conversion completed! No valid data to merge.");
+        }
+      } else {
+        alert("Conversion completed! Individual files generated.");
+      }
+    }
+
+    async function carregarExcelComparador(event) {
+      const arquivo = event.target.files?.[0];
+      if (!arquivo) return;
+
+      try {
+        const buffer = await arquivo.arrayBuffer();
+        estadoComparador.workbook = XLSX.read(buffer, { type: "array" });
+        popularSelectAbas(estadoComparador.workbook);
+        carregarAbaComparadorSelecionada();
+      } catch (err) {
+        alert(`Error loading Excel file: ${err.message}`);
+      }
+    }
+
+    function popularSelectAbas(workbook) {
+      const sel = document.getElementById("sheetSelect");
+      sel.innerHTML = "";
+
+      workbook.SheetNames.forEach(nome => {
+        const opt = document.createElement("option");
+        opt.value = nome;
+        opt.textContent = nome;
+        sel.appendChild(opt);
+      });
+
+      const preferida = workbook.SheetNames.find(n => /^(offset|defasagem)$/i.test(String(n).trim()));
+      if (preferida) sel.value = preferida;
+      sel.disabled = workbook.SheetNames.length === 0;
+    }
+
+    function carregarAbaComparadorSelecionada() {
+      const wb = estadoComparador.workbook;
+      if (!wb) return;
+
+      const nomeAba = document.getElementById("sheetSelect").value || wb.SheetNames[0];
+      const ws = wb.Sheets[nomeAba];
+      const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: "" });
+
+      const idxCabecalho = encontrarLinhaCabecalho(aoa);
+      const headerRow = idxCabecalho >= 0 ? aoa[idxCabecalho] : aoa[0];
+      const dataRows = aoa.slice(idxCabecalho >= 0 ? idxCabecalho + 1 : 1);
+
+      if (!headerRow || !headerRow.length) {
+        alert("Could not identify a valid header in the selected sheet.");
+        return;
+      }
+
+      const headers = headerRow.map(h => String(h ?? "").trim());
+      const referencias = extrairReferenciasLinha(aoa, idxCabecalho, headers);
+      const rows = dataRows
+        .filter(r => r.some(v => String(v ?? "").trim() !== ""))
+        .filter(r => !linhasSaoIguais(r, headerRow))
+        .map((r, idx) => {
+          const obj = { _idx: idx };
+          headers.forEach((h, i) => {
+            obj[h] = r[i] ?? "";
+          });
+          return obj;
+        });
+
+      estadoComparador.headers = headers;
+      estadoComparador.referencias = referencias;
+      estadoComparador.rows = rows;
+
+      preencherSelects(headers);
+      document.getElementById("btnAtualizar").disabled = false;
+      document.getElementById("btnExportComparador").disabled = false;
+      atualizarGraficos();
+    }
+
+    function preencherSelects(headers) {
+      estadoComparador.filtroCols = detectarColunasFiltros(headers);
+
+      estadoComparador.seriesCols.FE = extrairColunasSerie(headers, "FE");
+      estadoComparador.seriesCols.RE = extrairColunasSerie(headers, "RE");
+
+      ["A", "B"].forEach(sufixo => {
+        const selSerie = document.getElementById(`${sufixo.toLowerCase()}Serie`);
+        selSerie.innerHTML = "";
+
+        ["FE", "RE"].forEach(prefixo => {
+          if (!estadoComparador.seriesCols[prefixo].length) return;
+          const opt = document.createElement("option");
+          opt.value = prefixo;
+          opt.textContent = prefixo;
+          selSerie.appendChild(opt);
+        });
+
+        preencherSensoresSerie(sufixo);
+        preencherCombosFiltros(sufixo);
+      });
+    }
+
+    function atualizarGraficos() {
+      const serieA = montarSerie("A");
+      const serieB = montarSerie("B");
+
+      sincronizarTituloEditavel("A", serieA.tituloArquivo || "Scenario A");
+      sincronizarTituloEditavel("B", serieB.tituloArquivo || "Scenario B");
+
+      const auto = document.getElementById("chkAutoScale").checked;
+      let escalaA = {};
+      let escalaB = {};
+      const limitesA = obterLimitesGrafico("A");
+      const limitesB = obterLimitesGrafico("B");
+      const limitesPorBordaA = obterLimitesPorBorda(serieA);
+      const limitesPorBordaB = obterLimitesPorBorda(serieB);
+
+      if (auto) {
+        escalaA = calcularEscalaAutomaticaPorSerie(serieA.pontosTodos, limitesA, limitesPorBordaA);
+        escalaB = calcularEscalaAutomaticaPorSerie(serieB.pontosTodos, limitesB, limitesPorBordaB);
+      } else {
+        escalaA = calcularEscalaManualPorCenario("A");
+        escalaB = calcularEscalaManualPorCenario("B");
+      }
+
+      renderGrafico("chartA", "chartA", serieA, "#1f77b4", escalaA, limitesA);
+      renderGrafico("chartB", "chartB", serieB, "#d62728", escalaB, limitesB);
+    }
+
+    function sincronizarTituloEditavel(sufixo, sugestao) {
+      const elTitulo = document.getElementById(`chartTitle${sufixo}`);
+      if (!elTitulo) return;
+
+      const tituloAtual = estadoComparador.titulosCustomizados[sufixo] || { texto: "", manual: false };
+      const textoNormalizado = String(tituloAtual.texto ?? "").trim();
+      const sugestaoNormalizada = String(sugestao ?? "").trim() || `Scenario ${sufixo}`;
+
+      if (tituloAtual.manual && textoNormalizado) {
+        if (elTitulo.textContent !== textoNormalizado) elTitulo.textContent = textoNormalizado;
+        return;
+      }
+
+      estadoComparador.titulosCustomizados[sufixo] = {
+        texto: sugestaoNormalizada,
+        manual: false
+      };
+      if (elTitulo.textContent !== sugestaoNormalizada) elTitulo.textContent = sugestaoNormalizada;
+    }
+
+    function montarSerie(sufixo) {
+      const seriePrefixo = document.getElementById(`${sufixo.toLowerCase()}Serie`).value;
+      const sensoresSelecionados = obterValoresSelecionados(`${sufixo.toLowerCase()}Sensors`);
+
+      const colunasSerie = estadoComparador.seriesCols[seriePrefixo] || [];
+      if (!colunasSerie.length) {
+        return { datasets: [], pontosTodos: [], xLabel: "Sensors", yLabel: "Angle (°)", prefixoSerie: "", linhasFiltradas: 0 };
+      }
+
+      const faixaColunas = sensoresSelecionados.length
+        ? colunasSerie.filter(col => sensoresSelecionados.includes(col))
+        : [...colunasSerie];
+
+      const filtros = montarFiltrosMultiplos(sufixo);
+
+      const ignorarPerdaPulsos = document.getElementById("chkIgnorarPerdaPulsos").checked;
+      const linhasFiltradas = estadoComparador.rows.filter(row => {
+        if (!aplicarFiltrosMultiplos(row, filtros)) return false;
+        if (ignorarPerdaPulsos && !linhaValidaSemPerdaPulsos(row)) return false;
+        return true;
+      });
+      const datasets = linhasFiltradas.map((linha, idx) => {
+        const pontos = faixaColunas
+          .map(col => ({
+            x: extrairIndiceSerie(col),
+            y: parseNumero(linha[col])
+          }))
+          .filter(p => Number.isFinite(p.x) && Number.isFinite(p.y));
+
+        return {
+          label: nomeSerieLinha(linha, idx),
+          data: pontos
+        };
+      });
+
+      const pontosTodos = datasets.flatMap(d => d.data);
+
+      return {
+        datasets,
+        pontosTodos,
+        xLabel: seriePrefixo,
+        yLabel: "Angle (°)",
+        prefixoSerie: seriePrefixo,
+        linhasFiltradas: linhasFiltradas.length,
+        linhasFiltradasDados: linhasFiltradas,
+        tituloArquivo: extrairTituloGraficoDeArquivo(linhasFiltradas)
+      };
+    }
+
+    function aplicarFiltrosMultiplos(row, filtros) {
+      return filtros.every(filtro => {
+        const valores = filtro.valores || [];
+        if (!filtro.coluna || !valores.length) return true;
+        const valorLinha = String(row[filtro.coluna] ?? "").trim();
+        return valores.includes(valorLinha);
+      });
+    }
+
+    function extrairTituloGraficoDeArquivo(linhasFiltradas) {
+      const colunaArquivo = estadoComparador.filtroCols.arquivo || "Arquivo";
+      const nomeArquivo = (linhasFiltradas || [])
+        .map(linha => String(linha[colunaArquivo] ?? linha["Arquivo"] ?? "").trim())
+        .find(Boolean);
+
+      if (!nomeArquivo) return "";
+
+      const nomeBase = nomeArquivo
+        .split(/[\\/]/)
+        .pop()
+        .replace(/\.[^.]+$/, "");
+
+      const trechoComMm = nomeBase.match(/_M_(.+?_[+-]?\d+(?:[.,]\d+)?mm)(?:_|$)/i);
+      if (trechoComMm) return limparTituloGrafico(trechoComMm[1]);
+
+      const trechoSemMm = nomeBase.match(/_M_(.+?)(?:_(?:[+-]?\d+(?:[.,]\d+)?)rpm|$)/i);
+      if (trechoSemMm) return limparTituloGrafico(trechoSemMm[1]);
+
+      return limparTituloGrafico(nomeBase);
+    }
+
+    function limparTituloGrafico(titulo) {
+      return String(titulo ?? "")
+        .replace(/_[+-]?\d+(?:[.,]\d+)?mm(?:_|$).*/i, "")
+        .trim();
+    }
+
+    function calcularEscalaAutomaticaPorSerie(pontos, limitesConfigurados = {}, limitesPorBorda = {}) {
+      if (!pontos.length && !Number.isFinite(limitesConfigurados.min) && !Number.isFinite(limitesConfigurados.max)) return {};
+
+      const limites = calcularLimitesPontos(pontos);
+      if (!limites) return {};
+      const { minX, maxX } = limites;
+      const limitesBordaY = [...(limitesPorBorda.min || []), ...(limitesPorBorda.max || [])]
+        .map(p => p?.y)
+        .filter(v => Number.isFinite(v));
+      const limitesY = [limites.minY, limites.maxY, limitesConfigurados.min, limitesConfigurados.max, ...limitesBordaY]
+        .filter(v => Number.isFinite(v));
+      const minYBase = Math.min(...limitesY);
+      const maxYBase = Math.max(...limitesY);
+
+      const padY = (maxYBase - minYBase || 1) * 0.05;
+
+      return {
+        minX,
+        maxX,
+        minY: minYBase - padY,
+        maxY: maxYBase + padY
+      };
+    }
+
+    function obterTicksInteirosSerie(serie) {
+      const valores = (serie?.pontosTodos || [])
+        .map(p => p?.x)
+        .filter(v => Number.isInteger(v));
+
+      return [...new Set(valores)].sort((a, b) => a - b);
+    }
+
+    function calcularEscalaManualPorCenario(sufixo) {
+      const base = sufixo.toLowerCase();
+      return {
+        minX: tentarNumeroInput(`${base}XMin`),
+        maxX: tentarNumeroInput(`${base}XMax`),
+        minY: tentarNumeroInput(`${base}YMin`),
+        maxY: tentarNumeroInput(`${base}YMax`)
+      };
+    }
+
+    function calcularLimitesPontos(pontos) {
+      if (!Array.isArray(pontos) || !pontos.length) return null;
+
+      let minX = Infinity;
+      let maxX = -Infinity;
+      let minY = Infinity;
+      let maxY = -Infinity;
+
+      for (let i = 0; i < pontos.length; i++) {
+        const ponto = pontos[i];
+        const x = ponto?.x;
+        const y = ponto?.y;
+
+        if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+
+      if (!Number.isFinite(minX) || !Number.isFinite(maxX) || !Number.isFinite(minY) || !Number.isFinite(maxY)) {
+        return null;
+      }
+
+      return { minX, maxX, minY, maxY };
+    }
+
+    function obterLimitesGrafico(sufixo) {
+      const base = String(sufixo ?? "").toUpperCase();
+      return {
+        min: tentarNumeroInput(`limiteMinGrafico${base}`),
+        max: tentarNumeroInput(`limiteMaxGrafico${base}`)
+      };
+    }
+
+    function criarDatasetLimite(y, minX, maxX) {
+      if (!Number.isFinite(y) || !Number.isFinite(minX) || !Number.isFinite(maxX)) return null;
+      return {
+        label: "Limit",
+        data: [{ x: minX, y }, { x: maxX, y }],
+        borderColor: "#000000",
+        backgroundColor: "#000000",
+        pointRadius: 0,
+        pointHoverRadius: 0,
+        borderWidth: 2.4,
+        borderDash: [],
+        fill: false,
+        tension: 0,
+        order: -10
+      };
+    }
+
+    function criarDatasetLimitePorBorda(pontos, rotulo) {
+      if (!Array.isArray(pontos) || pontos.length < 2) return null;
+      return {
+        label: rotulo || "Per-edge limit",
+        data: pontos,
+        borderColor: "#000000",
+        backgroundColor: "#000000",
+        pointRadius: 0,
+        pointHoverRadius: 0,
+        borderWidth: 2.4,
+        borderDash: [],
+        fill: false,
+        tension: 0,
+        order: -10
+      };
+    }
+
+    function obterLimitesPorBorda(serie) {
+      if (!serie?.prefixoSerie) return { min: [], max: [] };
+      const config = capturarConfigDefasagem();
+      const xDisponiveis = [...new Set((serie.pontosTodos || []).map(p => p?.x).filter(v => Number.isFinite(v)))]
+        .sort((a, b) => a - b);
+      if (!xDisponiveis.length) return { min: [], max: [] };
+
+      const pontosMin = [];
+      const pontosMax = [];
+
+      if (config?.modo === "crank") {
+        const limites = config.crankLimits || {};
+        xDisponiveis.forEach(x => {
+          const grupo = (x === 1 || x === 58) ? "1e58" : (x >= 2 && x <= 57 ? "2a57" : "");
+          if (!grupo) return;
+          const min = parseNumero(limites[`minEdge${grupo}`]);
+          const max = parseNumero(limites[`maxEdge${grupo}`]);
+          if (Number.isFinite(min)) pontosMin.push({ x, y: min });
+          if (Number.isFinite(max)) pontosMax.push({ x, y: max });
+        });
+        return { min: pontosMin, max: pontosMax };
+      }
+
+      if (config?.modo === "cam") {
+        const limites = config.camLimits || {};
+        xDisponiveis.forEach(x => {
+          const chave = `${serie.prefixoSerie}${x}`;
+          const lim = limites[chave] || {};
+          const min = parseNumero(lim.min);
+          const max = parseNumero(lim.max);
+          if (Number.isFinite(min)) pontosMin.push({ x, y: min });
+          if (Number.isFinite(max)) pontosMax.push({ x, y: max });
+        });
+      }
+
+      return { min: pontosMin, max: pontosMax };
+    }
+
+    function renderGrafico(stateKey, canvasId, serie, cor, escala, limites) {
+      const chartAtual = estadoComparador[stateKey];
+      if (chartAtual) chartAtual.destroy();
+      const ticksInteiros = obterTicksInteirosSerie(serie);
+      const minTick = ticksInteiros[0];
+      const maxTick = ticksInteiros[ticksInteiros.length - 1];
+
+      const datasetsBase = (serie.datasets || []).map(d => ({
+        label: d.label,
+        data: d.data,
+        borderColor: cor,
+        backgroundColor: cor,
+        pointRadius: 0,
+        pointHoverRadius: 0,
+        borderWidth: 1.8,
+        borderDash: [],
+        fill: false,
+        tension: 0
+      }));
+
+      const minEscalaX = Number.isFinite(escala.minX) ? escala.minX : minTick;
+      const maxEscalaX = Number.isFinite(escala.maxX) ? escala.maxX : maxTick;
+      const isCrankComMuitasBordas = serie.prefixoSerie === "FE" && ticksInteiros.length >= 58;
+      const tamanhoFonteEixoX = isCrankComMuitasBordas ? 9 : 12;
+      const datasetsLimite = [
+        criarDatasetLimite(limites.min, minEscalaX, maxEscalaX),
+        criarDatasetLimite(limites.max, minEscalaX, maxEscalaX)
+      ].filter(Boolean);
+      const limitesPersonalizadosGrafico = Number.isFinite(limites.min) || Number.isFinite(limites.max);
+      const limitesPorBorda = limitesPersonalizadosGrafico ? { min: [], max: [] } : obterLimitesPorBorda(serie);
+      const datasetsLimitePorBorda = [
+        criarDatasetLimitePorBorda(limitesPorBorda.min, "Minimum per-edge limit"),
+        criarDatasetLimitePorBorda(limitesPorBorda.max, "Maximum per-edge limit")
+      ].filter(Boolean);
+
+      const datasets = [...datasetsBase, ...datasetsLimite, ...datasetsLimitePorBorda];
+
+      const ctx = document.getElementById(canvasId).getContext("2d");
+      estadoComparador[stateKey] = new Chart(ctx, {
+        type: "line",
+        data: {
+          datasets: [
+            ...datasets
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          parsing: false,
+          scales: {
+            x: {
+              type: "linear",
+              title: { display: true, text: serie.xLabel },
+              min: minEscalaX,
+              max: maxEscalaX,
+              afterBuildTicks: axis => {
+                if (!ticksInteiros.length) return;
+                axis.ticks = ticksInteiros.map(valor => ({ value: valor }));
+              },
+              ticks: {
+                autoSkip: false,
+                font: {
+                  size: tamanhoFonteEixoX
+                },
+                callback: value => {
+                  if (!Number.isInteger(value)) return "";
+                  return serie.prefixoSerie ? `${serie.prefixoSerie}${value}` : value;
+                }
+              }
+            },
+            y: {
+              type: "linear",
+              title: { display: true, text: serie.yLabel },
+              min: escala.minY,
+              max: escala.maxY
+            }
+          },
+          plugins: {
+            legend: { display: false },
+            title: { display: false }
+          }
+        }
+      });
+    }
+
+    function preencherSensoresSerie(sufixo) {
+      const prefixo = document.getElementById(`${sufixo.toLowerCase()}Serie`).value;
+      const colunasSerie = estadoComparador.seriesCols[prefixo] || [];
+      const selSensores = document.getElementById(`${sufixo.toLowerCase()}Sensors`);
+      const valoresAtuais = new Set(obterValoresSelecionados(selSensores.id));
+      selSensores.innerHTML = "";
+
+      colunasSerie.forEach(col => {
+        const opt = document.createElement("option");
+        opt.value = col;
+        opt.textContent = col;
+        opt.selected = valoresAtuais.size ? valoresAtuais.has(col) : true;
+        selSensores.appendChild(opt);
+      });
+    }
+
+    function detectarColunasFiltros(headers) {
+      return {
+        arquivo: encontrarCabecalhoPorAlias(headers, ["arquivo", "file"]),
+        acqui: encontrarCabecalhoPorAlias(headers, ["acqui", "#acqui", "aqui"]),
+        rev: encontrarCabecalhoPorAlias(headers, ["rev", "#rev", "revolucao", "revoluções"]),
+        airGap: encontrarCabecalhoPorAlias(headers, ["airgap", "air gap", "x axis", "xaxis", "x axis mm", "xaxismm"]),
+        posY: encontrarCabecalhoPorAlias(headers, ["posicaoy", "posiçãoy", "y", "ypos", "pos y"]),
+        rpm: encontrarCabecalhoPorAlias(headers, ["rpm", "speed"])
+      };
+    }
+
+    function extrairReferenciasLinha(aoa, idxCabecalho, headers) {
+      const refs = {};
+      if (!Array.isArray(aoa) || idxCabecalho <= 0 || !Array.isArray(headers)) return refs;
+
+      const linhaAnterior = aoa[idxCabecalho - 1];
+      if (!Array.isArray(linhaAnterior)) return refs;
+
+      headers.forEach((header, i) => {
+        const valor = parseNumero(linhaAnterior[i]);
+        if (Number.isFinite(valor)) refs[header] = valor;
+      });
+
+      return refs;
+    }
+
+    function encontrarColunaFE59() {
+      return estadoComparador.headers.find(h => /^fe\s*59$/i.test(String(h ?? "").trim())) || "";
+    }
+
+    function linhaValidaSemPerdaPulsos(row) {
+      const colFe59 = encontrarColunaFE59();
+      if (!colFe59) return true;
+
+      const fe59 = parseNumero(row[colFe59]);
+      if (!Number.isFinite(fe59) || fe59 <= 400) return false;
+
+      const colunasFe1a58 = estadoComparador.headers.filter(h => {
+        const m = String(h ?? "").trim().match(/^fe\s*(\d+)$/i);
+        if (!m) return false;
+        const indice = Number(m[1]);
+        return Number.isInteger(indice) && indice >= 1 && indice <= 58;
+      });
+
+      const encontrouValorAcima400ForaFe59 = colunasFe1a58.some(coluna => {
+        const valor = parseNumero(row[coluna]);
+        if (!Number.isFinite(valor)) return false;
+        return valor > 400;
+      });
+
+      return !encontrouValorAcima400ForaFe59;
+    }
+
+    function encontrarCabecalhoPorAlias(headers, aliases) {
+      return headers.find(h => {
+        const normalizado = normalizarCabecalho(h);
+        return aliases.some(alias => normalizado.includes(normalizarCabecalho(alias)));
+      }) || "";
+    }
+
+    function normalizarCabecalho(texto) {
+      return String(texto ?? "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "");
+    }
+
+    function preencherCombosFiltros(sufixo) {
+      const baseId = sufixo.toLowerCase();
+      const mapa = [
+        { id: `${baseId}FiltroArquivo`, coluna: estadoComparador.filtroCols.arquivo },
+        { id: `${baseId}FiltroAcqui`, coluna: estadoComparador.filtroCols.acqui },
+        { id: `${baseId}FiltroRev`, coluna: estadoComparador.filtroCols.rev },
+        { id: `${baseId}FiltroAirGap`, coluna: estadoComparador.filtroCols.airGap },
+        { id: `${baseId}FiltroPosY`, coluna: estadoComparador.filtroCols.posY },
+        { id: `${baseId}FiltroRPM`, coluna: estadoComparador.filtroCols.rpm }
+      ];
+
+      mapa.forEach(item => preencherSelectValores(item.id, item.coluna));
+    }
+
+    function preencherSelectValores(selectId, coluna) {
+      const sel = document.getElementById(selectId);
+      const valoresAtuais = new Set(obterValoresSelecionados(selectId));
+      sel.innerHTML = "";
+
+      if (!coluna) {
+        sel.disabled = true;
+        return;
+      }
+
+      const valoresUnicos = [...new Set(estadoComparador.rows.map(r => String(r[coluna] ?? "").trim()).filter(v => v !== ""))]
+        .sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true, sensitivity: "base" }));
+
+      valoresUnicos.forEach(valor => {
+        const opt = document.createElement("option");
+        opt.value = valor;
+        opt.textContent = valor;
+        opt.selected = valoresAtuais.size ? valoresAtuais.has(valor) : true;
+        sel.appendChild(opt);
+      });
+      sel.disabled = false;
+    }
+
+    function obterValoresSelecionados(selectId) {
+      const sel = document.getElementById(selectId);
+      if (!sel) return [];
+      return [...sel.selectedOptions].map(o => o.value);
+    }
+
+    function montarFiltrosMultiplos(sufixo) {
+      const baseId = sufixo.toLowerCase();
+      return [
+        { coluna: estadoComparador.filtroCols.arquivo, valores: obterValoresSelecionados(`${baseId}FiltroArquivo`) },
+        { coluna: estadoComparador.filtroCols.acqui, valores: obterValoresSelecionados(`${baseId}FiltroAcqui`) },
+        { coluna: estadoComparador.filtroCols.rev, valores: obterValoresSelecionados(`${baseId}FiltroRev`) },
+        { coluna: estadoComparador.filtroCols.airGap, valores: obterValoresSelecionados(`${baseId}FiltroAirGap`) },
+        { coluna: estadoComparador.filtroCols.posY, valores: obterValoresSelecionados(`${baseId}FiltroPosY`) },
+        { coluna: estadoComparador.filtroCols.rpm, valores: obterValoresSelecionados(`${baseId}FiltroRPM`) }
+      ];
+    }
+
+    function extrairColunasSerie(headers, prefixo) {
+      const escapedPrefixo = String(prefixo ?? "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp(`^${escapedPrefixo}\\s*([+-]?\\d+(?:[.,]\\d+)?)$`, "i");
+      return headers
+        .filter(h => {
+          const texto = String(h ?? "").trim();
+          if (!regex.test(texto)) return false;
+          if (/^fe\s*59$/i.test(texto)) return false;
+          return true;
+        })
+        .sort((a, b) => extrairIndiceSerie(a) - extrairIndiceSerie(b));
+    }
+
+    function extrairIndiceSerie(valor) {
+      const texto = String(valor ?? "").trim();
+      const m = texto.match(/[+-]?\d+(?:[.,]\d+)?$/);
+      if (!m) return NaN;
+      return Number(m[0].replace(",", "."));
+    }
+
+    function parseNumero(v) {
+      const texto = String(v ?? "").trim();
+      if (texto === "") return NaN;
+      const n = Number(normalizarNumero(texto));
+      return Number.isFinite(n) ? n : NaN;
+    }
+
+    function tentarNumeroInput(id) {
+      const raw = document.getElementById(id).value;
+      if (String(raw).trim() === "") return undefined;
+      const n = parseNumero(raw);
+      return Number.isFinite(n) ? n : undefined;
+    }
+
+    function encontrarLinhaCabecalho(dados) {
+      for (let i = 0; i < dados.length; i++) {
+        const linha = dados[i].map(c => String(c ?? "").trim().toLowerCase());
+        const textoLinha = linha.join(" ");
+        const temSpeed = textoLinha.includes("speed");
+        const temAcqui = textoLinha.includes("#acqui") || textoLinha.includes("acqui");
+        const temRev = textoLinha.includes("#rev") || textoLinha.includes("rev");
+        const temFe = linha.some(c => /^fe\d+$/i.test(c));
+        const temArquivo = linha.includes("arquivo");
+
+        if ((temSpeed && temAcqui) || (temRev && temFe) || (temArquivo && temRev)) {
+          return i;
+        }
+      }
+
+      return -1;
+    }
+
+    function linhasSaoIguais(a, b) {
+      if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+
+      for (let i = 0; i < a.length; i++) {
+        if (String(a[i] ?? "").trim() !== String(b[i] ?? "").trim()) return false;
+      }
+
+      return true;
+    }
+
+    function lerArquivo(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.onerror = () => reject(new Error(`Error reading file: ${file.name}`));
+        reader.readAsText(file, "utf-8");
+      });
+    }
+
+    function normalizarNumero(v) {
+      let s = (v ?? "").trim();
+      if (s === "") return s;
+
+      s = s.replace(/\s+/g, "");
+      const padraoInt = /^-?\d+$/;
+      const padraoDecimalPonto = /^-?\d+\.\d+$/;
+      const padraoDecimalVirgula = /^-?\d+,\d+$/;
+      const padraoUS = /^-?\d{1,3}(,\d{3})+(\.\d+)?$/;
+      const padraoEU = /^-?\d{1,3}(\.\d{3})+(,\d+)?$/;
+
+      if (padraoInt.test(s) || padraoDecimalPonto.test(s)) return s;
+      if (padraoDecimalVirgula.test(s)) return s.replace(",", ".");
+
+      const qtPontos = (s.match(/\./g) || []).length;
+      const qtVirgulas = (s.match(/,/g) || []).length;
+
+      if (padraoUS.test(s)) {
+        const semVirgulas = s.replace(/,/g, "");
+        return qtVirgulas === 1 && qtPontos === 0 ? s.replace(",", ".") : semVirgulas;
+      }
+
+      if (padraoEU.test(s)) {
+        if (qtPontos === 1 && qtVirgulas === 0) return s;
+        return s.replace(/\./g, "").replace(",", ".");
+      }
+
+      const ultimoPonto = s.lastIndexOf(".");
+      const ultimaVirgula = s.lastIndexOf(",");
+      if (ultimoPonto >= 0 && ultimaVirgula >= 0) {
+        if (ultimoPonto > ultimaVirgula) {
+          return s.replace(/,/g, "");
+        }
+        return s.replace(/\./g, "").replace(",", ".");
+      }
+
+      return v;
+    }
+
+    function tiparNumericos(ws) {
+      const range = XLSX.utils.decode_range(ws["!ref"]);
+      for (let R = range.s.r; R <= range.e.r; R++) {
+        for (let C = range.s.c; C <= range.e.c; C++) {
+          const addr = XLSX.utils.encode_cell({ r: R, c: C });
+          const cell = ws[addr];
+          if (!cell) continue;
+
+          if (typeof cell.v === "string" && /^-?\d+(\.\d+)?$/.test(cell.v)) {
+            const n = Number(cell.v);
+            if (!isNaN(n)) {
+              cell.v = n;
+              cell.t = "n";
+            }
+          }
+        }
+      }
+    }
+
+    function criarSheetDefasagem(dados, nomeAbaOrigem, configDefasagem) {
+      if (!Array.isArray(dados) || dados.length === 0) return null;
+
+      const idxCabecalho = encontrarLinhaCabecalho(dados);
+      const cabecalho = idxCabecalho >= 0 ? dados[idxCabecalho] : dados[0];
+      const inicioDados = idxCabecalho >= 0 ? idxCabecalho + 1 : 1;
+
+      if (!Array.isArray(cabecalho) || cabecalho.length === 0) return null;
+
+      const colunasSerie = [];
+      for (let c = 0; c < cabecalho.length; c++) {
+        if (/^(fe|re)\d+$/i.test(String(cabecalho[c] ?? "").trim())) {
+          colunasSerie.push(c);
+        }
+      }
+
+      if (colunasSerie.length === 0) return null;
+
+      const primeiraColunaFe = colunasSerie[0];
+      const linhaReferencia = new Array(cabecalho.length).fill("");
+      const colunaTituloRef = primeiraColunaFe > 0 ? primeiraColunaFe - 1 : 0;
+      linhaReferencia[colunaTituloRef] = "REFERENCE";
+
+      const referencias = construirReferenciasAngulares(cabecalho, colunasSerie, configDefasagem);
+      colunasSerie.forEach(c => {
+        linhaReferencia[c] = referencias[c] ?? "";
+      });
+
+      const aoaDefasagem = [linhaReferencia, [...cabecalho]];
+
+      for (let r = inicioDados; r < dados.length; r++) {
+        const linhaOrigem = dados[r];
+        if (linhasSaoIguais(linhaOrigem, cabecalho)) continue;
+
+        const novaLinha = new Array(cabecalho.length).fill("");
+
+        for (let c = 0; c < cabecalho.length; c++) {
+          const valor = linhaOrigem?.[c] ?? "";
+          if (colunasSerie.includes(c)) {
+            const referencia = parseNumero(referencias[c]);
+            const valorNumerico = parseNumero(valor);
+
+            if (Number.isFinite(referencia) && Number.isFinite(valorNumerico)) {
+              novaLinha[c] = valorNumerico - referencia;
+            } else {
+              const letraColuna = XLSX.utils.encode_col(c);
+              const linhaAbaOriginal = r + 1;
+              novaLinha[c] = {
+                f: `'${nomeAbaOrigem}'!${letraColuna}${linhaAbaOriginal}-${letraColuna}$1`
+              };
+            }
+          } else {
+            novaLinha[c] = valor;
+          }
+        }
+
+        aoaDefasagem.push(novaLinha);
+      }
+
+      return XLSX.utils.aoa_to_sheet(aoaDefasagem);
+    }
+
+    function atualizarCamposSensor() {
+      const modo = document.getElementById("sensorMode").value;
+      document.getElementById("crankConfig").style.display = modo === "crank" ? "grid" : "none";
+      document.getElementById("crankLimitsConfig").style.display = modo === "crank" ? "grid" : "none";
+      document.getElementById("camConfig").style.display = modo === "cam" ? "block" : "none";
+    }
+
+    function renderCamposCamshaft() {
+      const qtd = Math.max(1, Math.min(12, Number(document.getElementById("camEdges").value) || 4));
+      const wrapAngulos = document.getElementById("camAnglesGrid");
+      const wrapLimites = document.getElementById("camLimitsGrid");
+      wrapAngulos.innerHTML = "";
+      wrapLimites.innerHTML = "";
+
+      const criarCampo = nome => {
+        const div = document.createElement("div");
+        const label = document.createElement("label");
+        label.htmlFor = `camRef_${nome}`;
+        label.textContent = `Real angle ${nome} (°)`;
+        const input = document.createElement("input");
+        input.id = `camRef_${nome}`;
+        input.type = "number";
+        input.step = "any";
+        div.appendChild(label);
+        div.appendChild(input);
+        wrapAngulos.appendChild(div);
+      };
+
+      const criarCampoLimite = nome => {
+        const divMin = document.createElement("div");
+        const labelMin = document.createElement("label");
+        labelMin.htmlFor = `camLimMin_${nome}`;
+        labelMin.textContent = `Minimum limit ${nome} (°)`;
+        const inputMin = document.createElement("input");
+        inputMin.id = `camLimMin_${nome}`;
+        inputMin.type = "number";
+        inputMin.step = "any";
+        divMin.appendChild(labelMin);
+        divMin.appendChild(inputMin);
+        wrapLimites.appendChild(divMin);
+
+        const divMax = document.createElement("div");
+        const labelMax = document.createElement("label");
+        labelMax.htmlFor = `camLimMax_${nome}`;
+        labelMax.textContent = `Maximum limit ${nome} (°)`;
+        const inputMax = document.createElement("input");
+        inputMax.id = `camLimMax_${nome}`;
+        inputMax.type = "number";
+        inputMax.step = "any";
+        divMax.appendChild(labelMax);
+        divMax.appendChild(inputMax);
+        wrapLimites.appendChild(divMax);
+      };
+
+      for (let i = 1; i <= qtd; i++) criarCampo(`FE${i}`);
+      for (let i = 1; i <= qtd; i++) criarCampo(`RE${i}`);
+      for (let i = 1; i <= qtd; i++) criarCampoLimite(`FE${i}`);
+      for (let i = 1; i <= qtd; i++) criarCampoLimite(`RE${i}`);
+    }
+
+    function construirReferenciasAngulares(cabecalho, colunasSerie, configDefasagem) {
+      const refs = {};
+      const modo = configDefasagem?.modo ?? document.getElementById("sensorMode").value;
+
+      if (modo === "crank") {
+        const primeiro = parseNumero(configDefasagem?.crankFirstEdge);
+        const passo = parseNumero(configDefasagem?.crankStep);
+        if (!Number.isFinite(primeiro) || !Number.isFinite(passo)) return refs;
+
+        colunasSerie.forEach((coluna, idx) => {
+          refs[coluna] = primeiro + (idx * passo);
+        });
+        return refs;
+      }
+
+      const mapa = configDefasagem?.camRefs || {};
+
+      colunasSerie.forEach(c => {
+        const nome = String(cabecalho[c] ?? "").trim().toUpperCase();
+        const ref = parseNumero(mapa[nome]);
+        if (Number.isFinite(ref)) refs[c] = ref;
+      });
+      return refs;
+    }
+
+    function capturarConfigDefasagem() {
+      const modo = document.getElementById("sensorMode").value;
+      const config = { modo };
+
+      if (modo === "crank") {
+        config.crankFirstEdge = document.getElementById("crankFirstEdge").value;
+        config.crankStep = document.getElementById("crankStep").value;
+        config.crankLimits = {
+          minEdge1e58: document.getElementById("crankLimMin_1_58").value,
+          maxEdge1e58: document.getElementById("crankLimMax_1_58").value,
+          minEdge2a57: document.getElementById("crankLimMin_2_57").value,
+          maxEdge2a57: document.getElementById("crankLimMax_2_57").value
+        };
+        return config;
+      }
+
+      const qtd = Math.max(1, Math.min(12, Number(document.getElementById("camEdges").value) || 4));
+      const camRefs = {};
+      const camLimits = {};
+      for (let i = 1; i <= qtd; i++) {
+        camRefs[`FE${i}`] = document.getElementById(`camRef_FE${i}`)?.value ?? "";
+        camRefs[`RE${i}`] = document.getElementById(`camRef_RE${i}`)?.value ?? "";
+        camLimits[`FE${i}`] = {
+          min: document.getElementById(`camLimMin_FE${i}`)?.value ?? "",
+          max: document.getElementById(`camLimMax_FE${i}`)?.value ?? ""
+        };
+        camLimits[`RE${i}`] = {
+          min: document.getElementById(`camLimMin_RE${i}`)?.value ?? "",
+          max: document.getElementById(`camLimMax_RE${i}`)?.value ?? ""
+        };
+      }
+      config.camRefs = camRefs;
+      config.camLimits = camLimits;
+      return config;
+    }
+
+    function validarConfigDefasagem(configDefasagem) {
+      if (!configDefasagem) return "Could not read offset configuration.";
+
+      if (configDefasagem.modo === "crank") {
+        const primeiro = parseNumero(configDefasagem.crankFirstEdge);
+        const passo = parseNumero(configDefasagem.crankStep);
+        if (!Number.isFinite(primeiro)) return "Enter a valid number for the 1st edge angle (Crank).";
+        if (!Number.isFinite(passo)) return "Enter a valid number for increment per edge (Crank).";
+
+        const limites = configDefasagem.crankLimits || {};
+        const pares = [
+          { min: "minEdge1e58", max: "maxEdge1e58", nome: "edges 1 e 58" },
+          { min: "minEdge2a57", max: "maxEdge2a57", nome: "edges 2 a 57" }
+        ];
+        for (const par of pares) {
+          const min = parseNumero(limites[par.min]);
+          const max = parseNumero(limites[par.max]);
+          const minPreenchido = String(limites[par.min] ?? "").trim() !== "";
+          const maxPreenchido = String(limites[par.max] ?? "").trim() !== "";
+          if (!minPreenchido && !maxPreenchido) continue;
+          if (!Number.isFinite(min) || !Number.isFinite(max)) return `Enter valid minimum and maximum limits for ${par.nome}.`;
+          if (min > max) return `Minimum limit must be less than or equal to maximum for ${par.nome}.`;
+        }
+        return "";
+      }
+
+      const refs = Object.entries(configDefasagem.camRefs || {});
+      if (!refs.length) return "Enter reference angles for Camshaft.";
+
+      const vazio = refs.find(([, valor]) => String(valor ?? "").trim() === "");
+      if (vazio) return `Enter the reference angle for ${vazio[0]}.`;
+
+      const invalido = refs.find(([, valor]) => !Number.isFinite(parseNumero(valor)));
+      if (invalido) return `Invalid value for reference angle ${invalido[0]}.`;
+
+      const limitesCam = Object.entries(configDefasagem.camLimits || {});
+      if (!limitesCam.length) return "";
+
+      const limiteInvalido = limitesCam.find(([nome, lim]) => {
+        const minPreenchido = String(lim?.min ?? "").trim() !== "";
+        const maxPreenchido = String(lim?.max ?? "").trim() !== "";
+        if (!minPreenchido && !maxPreenchido) return false;
+        return !Number.isFinite(parseNumero(lim?.min)) || !Number.isFinite(parseNumero(lim?.max));
+      });
+      if (limiteInvalido) return `Enter valid minimum and maximum limits for ${limiteInvalido[0]}.`;
+
+      const limiteInvertido = limitesCam.find(([, lim]) => {
+        const minPreenchido = String(lim?.min ?? "").trim() !== "";
+        const maxPreenchido = String(lim?.max ?? "").trim() !== "";
+        if (!minPreenchido && !maxPreenchido) return false;
+        return parseNumero(lim?.min) > parseNumero(lim?.max);
+      });
+      if (limiteInvertido) return `Minimum limit must be less than or equal to maximum for ${limiteInvertido[0]}.`;
+
+      return "";
+    }
+
+    function exportarConfigDefasagemTxt() {
+      const config = capturarConfigDefasagem();
+      const erro = validarConfigDefasagem(config);
+      if (erro) {
+        alert(erro);
+        return;
+      }
+
+      const linhas = [
+        "ESS_WHEEL_CONFIG_V1",
+        `mode=${config.modo}`
+      ];
+
+      if (config.modo === "crank") {
+        linhas.push(`crankFirstEdge=${config.crankFirstEdge}`);
+        linhas.push(`crankStep=${config.crankStep}`);
+        linhas.push(`crankLimit.minEdge1e58=${config.crankLimits.minEdge1e58}`);
+        linhas.push(`crankLimit.maxEdge1e58=${config.crankLimits.maxEdge1e58}`);
+        linhas.push(`crankLimit.minEdge2a57=${config.crankLimits.minEdge2a57}`);
+        linhas.push(`crankLimit.maxEdge2a57=${config.crankLimits.maxEdge2a57}`);
+      } else {
+        const nomesRefs = Object.keys(config.camRefs || {}).sort((a, b) => extrairIndiceSerie(a) - extrairIndiceSerie(b));
+        linhas.push(`camEdges=${Number(document.getElementById("camEdges").value) || Math.max(1, nomesRefs.length / 2)}`);
+        nomesRefs.forEach(chave => {
+          linhas.push(`camRef.${chave}=${config.camRefs[chave]}`);
+          const limites = config.camLimits?.[chave] || {};
+          linhas.push(`camLimit.${chave}.min=${limites.min ?? ""}`);
+          linhas.push(`camLimit.${chave}.max=${limites.max ?? ""}`);
+        });
+      }
+
+      const blob = new Blob([linhas.join("\n")], { type: "text/plain;charset=utf-8" });
+      saveAs(blob, `wheel_config_${config.modo}.txt`);
+    }
+
+    async function carregarConfigDefasagemTxt(event) {
+      const arquivo = event.target.files?.[0];
+      if (!arquivo) return;
+
+      try {
+        const texto = await arquivo.text();
+        aplicarConfigDefasagemTexto(texto);
+        alert("Wheel configuration loaded successfully.");
+      } catch (erro) {
+        alert(`Error loading configuration: ${erro.message}`);
+      } finally {
+        event.target.value = "";
+      }
+    }
+
+    function aplicarConfigDefasagemTexto(texto) {
+      const linhas = String(texto ?? "").split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      if (!linhas.length || !/^ESS_WHEEL_CONFIG_V1$/i.test(linhas[0])) {
+        throw new Error("Invalid configuration file.");
+      }
+
+      const mapa = {};
+      linhas.slice(1).forEach(linha => {
+        const idxEq = linha.indexOf("=");
+        if (idxEq <= 0) return;
+        const chave = linha.slice(0, idxEq).trim();
+        const valor = linha.slice(idxEq + 1).trim();
+        mapa[chave] = valor;
+      });
+
+      const modo = (mapa.mode || "").toLowerCase();
+      if (!["crank", "cam"].includes(modo)) {
+        throw new Error("Invalid sensor mode in TXT.");
+      }
+
+      document.getElementById("sensorMode").value = modo;
+      atualizarCamposSensor();
+
+      if (modo === "crank") {
+        document.getElementById("crankFirstEdge").value = mapa.crankFirstEdge ?? "";
+        document.getElementById("crankStep").value = mapa.crankStep ?? "";
+        document.getElementById("crankLimMin_1_58").value = mapa["crankLimit.minEdge1e58"] ?? "";
+        document.getElementById("crankLimMax_1_58").value = mapa["crankLimit.maxEdge1e58"] ?? "";
+        document.getElementById("crankLimMin_2_57").value = mapa["crankLimit.minEdge2a57"] ?? "";
+        document.getElementById("crankLimMax_2_57").value = mapa["crankLimit.maxEdge2a57"] ?? "";
+      } else {
+        const qtd = Math.max(1, Math.min(12, Number(mapa.camEdges) || 4));
+        document.getElementById("camEdges").value = qtd;
+        renderCamposCamshaft();
+
+        Object.entries(mapa).forEach(([chave, valor]) => {
+          if (!chave.startsWith("camRef.")) return;
+          const nome = chave.replace(/^camRef\./, "").toUpperCase();
+          const input = document.getElementById(`camRef_${nome}`);
+          if (input) input.value = valor;
+        });
+
+        Object.entries(mapa).forEach(([chave, valor]) => {
+          const minMatch = chave.match(/^camLimit\.(FE\d+|RE\d+)\.min$/i);
+          const maxMatch = chave.match(/^camLimit\.(FE\d+|RE\d+)\.max$/i);
+          if (minMatch) {
+            const inputMin = document.getElementById(`camLimMin_${minMatch[1].toUpperCase()}`);
+            if (inputMin) inputMin.value = valor;
+          }
+          if (maxMatch) {
+            const inputMax = document.getElementById(`camLimMax_${maxMatch[1].toUpperCase()}`);
+            if (inputMax) inputMax.value = valor;
+          }
+        });
+      }
+
+      const erro = validarConfigDefasagem(capturarConfigDefasagem());
+      if (erro) throw new Error(erro);
+    }
+
+    function capturarConfigGraficos() {
+      return {
+        autoScale: document.getElementById("chkAutoScale").checked,
+        A: {
+          min: document.getElementById("limiteMinGraficoA").value,
+          max: document.getElementById("limiteMaxGraficoA").value
+        },
+        B: {
+          min: document.getElementById("limiteMinGraficoB").value,
+          max: document.getElementById("limiteMaxGraficoB").value
+        }
+      };
+    }
+
+    function validarConfigGraficos(config) {
+      const validar = (lim, nome) => {
+        if (String(lim.min ?? "").trim() === "" && String(lim.max ?? "").trim() === "") return "";
+        const min = parseNumero(lim.min);
+        const max = parseNumero(lim.max);
+        if (!Number.isFinite(min) || !Number.isFinite(max)) return `Enter valid minimum and maximum limits for ${nome}.`;
+        if (min > max) return `Minimum limit must be less than or equal to maximum for ${nome}.`;
+        return "";
+      };
+
+      return validar(config.A || {}, "Scenario A") || validar(config.B || {}, "Scenario B");
+    }
+
+    function exportarConfigGraficosTxt() {
+      const config = capturarConfigGraficos();
+      const erro = validarConfigGraficos(config);
+      if (erro) {
+        alert(erro);
+        return;
+      }
+
+      const linhas = [
+        "ESS_GRAPH_LIMITS_CONFIG_V1",
+        `autoScale=${config.autoScale ? "1" : "0"}`,
+        `A.min=${config.A.min}`,
+        `A.max=${config.A.max}`,
+        `B.min=${config.B.min}`,
+        `B.max=${config.B.max}`
+      ];
+
+      const blob = new Blob([linhas.join("\n")], { type: "text/plain;charset=utf-8" });
+      saveAs(blob, "chart_limits_config.txt");
+    }
+
+    async function carregarConfigGraficosTxt(event) {
+      const arquivo = event.target.files?.[0];
+      if (!arquivo) return;
+
+      try {
+        const texto = await arquivo.text();
+        aplicarConfigGraficosTexto(texto);
+        if (estadoComparador.rows.length) atualizarGraficos();
+        alert("Chart limits configuration loaded successfully.");
+      } catch (erro) {
+        alert(`Error loading chart configuration: ${erro.message}`);
+      } finally {
+        event.target.value = "";
+      }
+    }
+
+    function aplicarConfigGraficosTexto(texto) {
+      const linhas = String(texto ?? "").split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      if (!linhas.length || !/^ESS_GRAPH_LIMITS_CONFIG_V1$/i.test(linhas[0])) {
+        throw new Error("Invalid chart configuration file.");
+      }
+
+      const mapa = {};
+      linhas.slice(1).forEach(linha => {
+        const idxEq = linha.indexOf("=");
+        if (idxEq <= 0) return;
+        mapa[linha.slice(0, idxEq).trim()] = linha.slice(idxEq + 1).trim();
+      });
+
+      document.getElementById("chkAutoScale").checked = mapa.autoScale !== "0";
+      document.getElementById("manualScaleBox").style.display = document.getElementById("chkAutoScale").checked ? "none" : "grid";
+      document.getElementById("limiteMinGraficoA").value = mapa["A.min"] ?? "";
+      document.getElementById("limiteMaxGraficoA").value = mapa["A.max"] ?? "";
+      document.getElementById("limiteMinGraficoB").value = mapa["B.min"] ?? "";
+      document.getElementById("limiteMaxGraficoB").value = mapa["B.max"] ?? "";
+
+      const erro = validarConfigGraficos(capturarConfigGraficos());
+      if (erro) throw new Error(erro);
+    }
+
+    function extrairMetadadosTexto(linhasArquivo, nomeArquivo = "") {
+      const linhas = Array.isArray(linhasArquivo) ? linhasArquivo : [];
+      const mapa = {};
+
+      linhas.forEach(linha => {
+        const partes = String(linha ?? "").split(";");
+        if (partes.length < 2) return;
+        const chave = normalizarCabecalho(partes[0]);
+        if (!chave || mapa[chave]) return;
+        mapa[chave] = String(partes.slice(1).join(";") ?? "").trim();
+      });
+
+      const airGapTxt = mapa["xaxismm"] ?? mapa["xaxis"] ?? "";
+      const posYTxt = mapa["yaxismm"] ?? mapa["yaxis"] ?? "";
+      const rpmTxt = mapa["targetwheelspeedrpm"] ?? mapa["targetwheelspeed"] ?? "";
+
+      const airGap = normalizarValorMetadata(airGapTxt);
+      const posY = normalizarValorMetadata(posYTxt);
+      const rpm = normalizarValorMetadata(rpmTxt);
+
+      if (airGap || posY || rpm) {
+        return { airGap, posY, rpm };
+      }
+
+      return extrairMetadadosArquivoDoNome(nomeArquivo);
+    }
+
+    function normalizarValorMetadata(valor) {
+      const texto = String(valor ?? "").trim();
+      if (!texto) return "";
+      const n = parseNumero(texto);
+      return Number.isFinite(n) ? String(n) : texto;
+    }
+
+    function extrairMetadadosArquivoDoNome(nomeArquivo) {
+      const nome = String(nomeArquivo ?? "");
+      const limpar = v => String(v ?? "").replace(/_/g, "").trim();
+      const mmMatches = [...nome.matchAll(/([+-]?\d+(?:[.,]\d+)?)\s*mm/gi)].map(m => limpar(m[1]));
+      const rpm = nome.match(/(\d+(?:[.,]\d+)?)\s*rpm/i);
+      const airGap = mmMatches[0] ?? "";
+      const posY = mmMatches[1] ?? "";
+
+      return {
+        airGap,
+        posY,
+        rpm: rpm ? limpar(rpm[1]) : ""
+      };
+    }
+
+    function encontrarIndiceColuna(cabecalho, aliases) {
+      if (!Array.isArray(cabecalho) || !cabecalho.length) return -1;
+      const aliasesNormalizados = aliases.map(a => normalizarCabecalho(a));
+      return cabecalho.findIndex(col => {
+        const valor = normalizarCabecalho(col);
+        return aliasesNormalizados.some(alias => valor.includes(alias));
+      });
+    }
+
+    function cabecalhoJaTemMetadados(cabecalho) {
+      return {
+        airGap: encontrarIndiceColuna(cabecalho, ["xaxis", "airgap", "air gap"]) >= 0,
+        posY: encontrarIndiceColuna(cabecalho, ["yaxis", "posição y", "posicaoy", "y pos"]) >= 0,
+        rpm: encontrarIndiceColuna(cabecalho, ["speed", "rpm", "target wheel speed"]) >= 0
+      };
+    }
+
+    function aplicarMetadadosNoArquivo(dados, idxCabecalho, cabecalhoOriginal, metadadosArquivo) {
+      if (!Array.isArray(dados) || !dados.length) return [];
+      if (!Array.isArray(cabecalhoOriginal) || !cabecalhoOriginal.length) return dados;
+
+      const jaTem = cabecalhoJaTemMetadados(cabecalhoOriginal);
+      if (jaTem.airGap && jaTem.posY && jaTem.rpm) return dados;
+
+      const cabecalhoComMeta = inserirMetadadosNoCabecalho(cabecalhoOriginal, jaTem);
+      const inicioDados = idxCabecalho >= 0 ? idxCabecalho + 1 : 1;
+      const saida = [];
+
+      for (let i = 0; i < dados.length; i++) {
+        const linha = dados[i];
+        if (i === idxCabecalho || (idxCabecalho < 0 && i === 0)) {
+          saida.push(cabecalhoComMeta);
+          continue;
+        }
+
+        if (i < inicioDados) {
+          saida.push(linha);
+          continue;
+        }
+
+        if (linhasSaoIguais(linha, cabecalhoOriginal)) {
+          saida.push(cabecalhoComMeta);
+          continue;
+        }
+
+        saida.push(inserirMetadadosNaLinha(linha, cabecalhoOriginal, metadadosArquivo, jaTem));
+      }
+
+      return saida;
+    }
+
+    function inserirMetadadosNoCabecalho(cabecalho, jaTem = {}) {
+      const idxRev = cabecalho.findIndex(c => String(c ?? "").trim().toLowerCase() === "#rev");
+      const extras = [];
+      if (!jaTem.airGap) extras.push("Air Gap (mm)");
+      if (!jaTem.posY) extras.push("Y Position (mm)");
+      if (!jaTem.rpm) extras.push("RPM");
+      if (idxRev < 0) return [...cabecalho, ...extras];
+      return [...cabecalho.slice(0, idxRev + 1), ...extras, ...cabecalho.slice(idxRev + 1)];
+    }
+
+    function inserirMetadadosNaLinha(linha, cabecalhoOriginal, metadadosArquivo, jaTem = {}) {
+      const idxRev = cabecalhoOriginal.findIndex(c => String(c ?? "").trim().toLowerCase() === "#rev");
+      const meta = metadadosArquivo || {};
+      const extras = [];
+      if (!jaTem.airGap) extras.push(meta.airGap);
+      if (!jaTem.posY) extras.push(meta.posY);
+      if (!jaTem.rpm) extras.push(meta.rpm);
+      if (idxRev < 0) return [...linha, ...extras];
+      return [...linha.slice(0, idxRev + 1), ...extras, ...linha.slice(idxRev + 1)];
+    }
+
+    function nomeSerieLinha(linha, idx) {
+      const arquivo = String(linha["Arquivo"] ?? "").trim();
+      const rev = String(linha["#Rev"] ?? linha["Rev"] ?? "").trim();
+      if (arquivo && rev) return `${arquivo} | #Rev ${rev}`;
+      if (arquivo) return arquivo;
+      if (rev) return `#Rev ${rev}`;
+      return `Row ${idx + 1}`;
+    }
+
+    async function exportarComparadorComGraficos() {
+      if (!estadoComparador.workbook) {
+        alert("Load an Excel file before exporting.");
+        return;
+      }
+
+      const btn = document.getElementById("btnExportComparador");
+      const textoOriginal = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = "Exporting...";
+
+      try {
+        const wbExport = new ExcelJS.Workbook();
+        copiarAbasBaseParaWorkbookExcelJS(wbExport);
+
+        const serieA = montarSerie("A");
+        const serieB = montarSerie("B");
+        const auto = document.getElementById("chkAutoScale").checked;
+        const limitesA = obterLimitesGrafico("A");
+        const limitesB = obterLimitesGrafico("B");
+        const escalaA = auto ? calcularEscalaAutomaticaPorSerie(serieA.pontosTodos, limitesA) : calcularEscalaManualPorCenario("A");
+        const escalaB = auto ? calcularEscalaAutomaticaPorSerie(serieB.pontosTodos, limitesB) : calcularEscalaManualPorCenario("B");
+
+        await adicionarAbaCenarioComGrafico(wbExport, "A", serieA, escalaA);
+        await adicionarAbaCenarioComGrafico(wbExport, "B", serieB, escalaB);
+
+        const buffer = await wbExport.xlsx.writeBuffer();
+        saveAs(
+          new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
+          "merged_result_with_stratification.xlsx"
+        );
+      } catch (err) {
+        alert(`Error exporting worksheet: ${err.message}`);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = textoOriginal;
+      }
+    }
+
+    function copiarAbasBaseParaWorkbookExcelJS(wbExport) {
+      const nomesPreferidos = ["MERGED", "OFFSET", "Unificado", "DEFASAGEM"];
+      const nomesSelecionados = nomesPreferidos.filter(nome => estadoComparador.workbook.Sheets[nome]);
+
+      if (!nomesSelecionados.length) {
+        nomesSelecionados.push(...estadoComparador.workbook.SheetNames.slice(0, 2));
+      }
+
+      nomesSelecionados.forEach(nome => {
+        const wsOrigem = estadoComparador.workbook.Sheets[nome];
+        if (!wsOrigem) return;
+        const aoa = XLSX.utils.sheet_to_json(wsOrigem, { header: 1, raw: true, defval: "" });
+        const wsDestino = wbExport.addWorksheet(nome.substring(0, 31));
+        aoa.forEach(linha => wsDestino.addRow(linha));
+      });
+    }
+
+    async function adicionarAbaCenarioComGrafico(wbExport, sufixo, serie, escala) {
+      const tituloGrafico = serie.tituloArquivo || `Scenario ${sufixo}`;
+      const nomeAba = construirNomeAbaGrafico(wbExport, tituloGrafico, sufixo);
+      const ws = wbExport.addWorksheet(nomeAba);
+      const cabecalho = [...(estadoComparador.headers || [])];
+      const linhasFiltradas = Array.isArray(serie.linhasFiltradasDados) ? serie.linhasFiltradasDados : [];
+
+      const linhaReferencia = cabecalho.map(() => "");
+      const colunasSerieSelecionadas = (estadoComparador.seriesCols[serie.prefixoSerie] || [])
+        .filter(coluna => cabecalho.includes(coluna));
+
+      if (colunasSerieSelecionadas.length) {
+        const idxPrimeiraColunaSerie = cabecalho.findIndex(col => col === colunasSerieSelecionadas[0]);
+        const idxColunaTitulo = idxPrimeiraColunaSerie > 0 ? idxPrimeiraColunaSerie - 1 : 0;
+        linhaReferencia[idxColunaTitulo] = "REFERENCE";
+      }
+
+      colunasSerieSelecionadas.forEach(coluna => {
+        const idxColuna = cabecalho.indexOf(coluna);
+        if (idxColuna < 0) return;
+        const ref = estadoComparador.referencias[coluna];
+        linhaReferencia[idxColuna] = Number.isFinite(ref) ? ref : "";
+      });
+
+      ws.addRow(linhaReferencia);
+      ws.addRow(cabecalho);
+
+      linhasFiltradas.forEach(row => {
+        const linha = cabecalho.map(coluna => row[coluna] ?? "");
+        ws.addRow(linha);
+      });
+
+      ws.addRow([]);
+      ws.addRow(["Chart title", tituloGrafico]);
+      ws.addRow(["Filtered rows", serie.linhasFiltradas]);
+      ws.addRow(["X scale", `${valorEscalaTexto(escala?.minX)} to ${valorEscalaTexto(escala?.maxX)}`]);
+      ws.addRow(["Y scale", `${valorEscalaTexto(escala?.minY)} to ${valorEscalaTexto(escala?.maxY)}`]);
+      ws.addRow(["Note", "This file exports data in native format for creating/editing the chart directly in Excel."]);
+    }
+
+    function construirNomeAbaGrafico(wbExport, tituloGrafico, sufixo) {
+      const base = String(tituloGrafico ?? "")
+        .replace(/[\\/*?:[\]]/g, " ")
+        .trim() || `Scenario ${sufixo}`;
+      const limite = 31;
+      const nomesExistentes = new Set((wbExport.worksheets || []).map(ws => ws.name));
+      let nome = base.substring(0, limite);
+
+      if (!nomesExistentes.has(nome)) return nome;
+
+      let contador = 2;
+      while (contador < 1000) {
+        const sufixoContador = ` (${contador})`;
+        const nomeTentativa = base.substring(0, limite - sufixoContador.length) + sufixoContador;
+        if (!nomesExistentes.has(nomeTentativa)) return nomeTentativa;
+        contador++;
+      }
+
+      return `Scenario ${sufixo}`.substring(0, limite);
+    }
+
+    function valorEscalaTexto(valor) {
+      return Number.isFinite(valor) ? String(valor) : "auto";
+    }
+  </script>
+</body>
+</html>
